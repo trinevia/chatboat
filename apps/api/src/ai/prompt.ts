@@ -1,3 +1,4 @@
+import type { ChartSpec } from '@chatboat/shared';
 import { BIZ_SCHEMA_DOC } from '@chatboat/db/biz-schema-doc';
 
 /** Stable system prompt (kept constant so providers can cache it). */
@@ -21,4 +22,18 @@ Rules:
 
 export function userContext(role: string) {
   return `The user's role is "${role}". Today's date is ${new Date().toISOString().slice(0, 10)}.`;
+}
+
+/** Context for chats started with "Ask about this chart". */
+export function chartContext(chart: ChartSpec) {
+  const preview = JSON.stringify(chart.rows.slice(0, 40));
+  return [
+    `The user opened this conversation from a saved chart titled "${chart.title}" and is asking about it.`,
+    chart.explanation ? `How it was calculated: ${chart.explanation}` : '',
+    chart.sql ? `Its SQL:\n${chart.sql}` : '',
+    `Columns: ${chart.columns.join(', ')}. First rows: ${preview}`,
+    'Build on this query when answering (reuse its filters unless the user changes them).',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }

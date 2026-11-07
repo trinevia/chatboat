@@ -98,6 +98,41 @@ export const FEEDBACK_REASONS = {
 } as const;
 export type FeedbackReason = keyof typeof FEEDBACK_REASONS;
 
+// ---- Collections & sharing ------------------------------------------------------
+export interface Collection {
+  id: number;
+  name: string;
+  chatCount: number;
+}
+
+/** Chart without the SQL, as shown to people viewing a public share link. */
+export type PublicChart = Omit<ChartSpec, 'sql'>;
+
+export type ShareSnapshot =
+  | {
+      kind: 'chat';
+      title: string;
+      messages: { role: 'user' | 'assistant'; text: string; charts: PublicChart[] }[];
+    }
+  | { kind: 'dashboard'; title: string; charts: PublicChart[] };
+
+export interface PublicShare {
+  snapshot: ShareSnapshot;
+  sharedBy: string;
+  updatedAt: string;
+}
+
+export interface ShareLinkInfo {
+  token: string;
+  updatedAt: string;
+}
+
+export const createChatInput = z.object({
+  title: z.string().max(200).optional(),
+  /** Start the chat from an existing chart ("Ask about this chart"). */
+  contextChart: chartSpec.optional(),
+});
+
 export const feedbackInput = z.object({
   messageId: z.string(),
   rating: z.enum(['up', 'down']),

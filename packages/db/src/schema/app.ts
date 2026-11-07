@@ -84,6 +84,8 @@ export const chat = app.table('chat', {
   title: text('title').notNull().default('New chat'),
   isSaved: boolean('is_saved').notNull().default(false),
   groupId: integer('group_id').references(() => chatGroup.id, { onDelete: 'set null' }),
+  /** Chart the chat was started from ("Ask about this chart"); given to the model as context. */
+  context: jsonb('context'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -138,6 +140,23 @@ export const dashboardWidget = app.table('dashboard_widget', {
   chart: jsonb('chart').notNull(),
   sql: text('sql'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+/**
+ * Read-only public link to a frozen copy of a chat or dashboard.
+ * The snapshot is taken when the link is created or refreshed, so viewers never run queries.
+ */
+export const shareLink = app.table('share_link', {
+  token: text('token').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  kind: text('kind', { enum: ['chat', 'dashboard'] }).notNull(),
+  targetId: text('target_id').notNull(),
+  snapshot: jsonb('snapshot').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  revokedAt: timestamp('revoked_at'),
 });
 
 export const chatRelations = relations(chat, ({ many, one }) => ({

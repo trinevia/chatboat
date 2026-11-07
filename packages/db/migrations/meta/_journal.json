@@ -15,6 +15,13 @@
       "when": 1794034150488,
       "tag": "0001_simple_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794034634790,
+      "tag": "0002_sleepy_exiles",
+      "breakpoints": true
     }
   ]
 }

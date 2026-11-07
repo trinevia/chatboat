@@ -2,7 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, Pencil } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, MessageSquare, MessageSquarePlus, Pencil } from 'lucide-react';
+import type { ChartSpec } from '@chatboat/shared';
+import { MenuItem } from '@/components/ui/menu';
+import { ShareButton } from '@/components/share/share-dialog';
 import { useDialogs } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { api, type DashboardDetail } from '@/lib/api';
@@ -11,6 +15,7 @@ import { ChartCard } from '@/components/charts/chart-card';
 export function DashboardView({ id }: { id: number }) {
   const qc = useQueryClient();
   const dialogs = useDialogs();
+  const router = useRouter();
   const key = ['dashboard', id];
   const { data, isLoading, error } = useQuery({ queryKey: key, queryFn: () => api.getDashboard(id) });
 
@@ -37,6 +42,16 @@ export function DashboardView({ id }: { id: number }) {
     onError: () => toast.error('Could not rename the dashboard.'),
   });
 
+  // "Ask about this chart": a new chat that starts with this chart as context.
+  const askAbout = useMutation({
+    mutationFn: (chart: ChartSpec) => api.createChat({ contextChart: chart }),
+    onSuccess: ({ id }) => {
+      qc.invalidateQueries({ queryKey: ['chats'] });
+      router.push(`/c/${id}`);
+    },
+    onError: () => toast.error('Could not start a chat about this chart.'),
+  });
+
   if (isLoading) return <div className='p-8 text-sm text-muted'>Loading dashboard…</div>;
   if (error || !data) return <div className='p-8 text-sm text-danger'>Dashboard not found.</div>;
 
@@ -45,7 +60,7 @@ export function DashboardView({ id }: { id: number }) {
       <Link href='/dashboards' className='inline-flex items-center gap-1 text-sm text-muted hover:text-text'>
         <ArrowLeft className='h-4 w-4' /> Dashboards
       </Link>
-      <div className='mt-2 flex items-center gap-1'>
+      <div className='mt-2 flex flex-wrap items-center gap-1'>
         <h1 className='text-xl font-semibold'>{data.name}</h1>
         <button
           aria-label='Rename dashboard'
@@ -57,6 +72,9 @@ export function DashboardView({ id }: { id: number }) {
         >
           <Pencil className='h-4 w-4' />
         </button>
+        <div className='ml-auto'>
+          <ShareButton kind='dashboard' id={String(data.id)} />
+        </div>
       </div>
       {!data.widgets.length && <p className='mt-6 text-sm text-muted'>This dashboard is empty.</p>}
       <div className='mt-6 grid gap-4 lg:grid-cols-2'>
@@ -66,6 +84,16 @@ export function DashboardView({ id }: { id: number }) {
               spec={w.chart}
               onRefresh={w.sql ? () => refresh.mutate(w.id) : undefined}
               refreshing={refresh.isPending && refresh.variables === w.id}
+              extraActions={close => (
+                <MenuItem
+                  onClick={() => {
+                    close();
+                    askAbout.mutate(w.chart);
+                  }}
+                >
+                  <MessageSquarePlus className='h-4 w-4' /> Ask about this chart
+                </MenuItem>
+              )}
               onRemove={async () => {
                 const ok = await dialogs.confirm({
                   title: 'Remove chart?',
@@ -76,11 +104,20 @@ export function DashboardView({ id }: { id: number }) {
                 if (ok) remove.mutate(w.id);
               }}
             />
-            {w.chatId && (
-              <Link href={`/c/${w.chatId}`} className='inline-flex items-center gap-1 px-1 text-xs text-muted hover:text-brand'>
-                <MessageSquare className='h-3 w-3' /> Open the conversation
-              </Link>
-            )}
+            <div className='flex flex-wrap gap-x-4 px-1'>
+              <button
+                onClick={() => askAbout.mutate(w.chart)}
+                disabled={askAbout.isPending}
+                className='inline-flex cursor-pointer items-center gap-1 text-xs text-muted hover:text-brand'
+              >
+                <MessageSquarePlus className='h-3 w-3' /> Ask about this chart
+              </button>
+              {w.chatId && (
+                <Link href={`/c/${w.chatId}`} className='inline-flex items-center gap-1 text-xs text-muted hover:text-brand'>
+                  <MessageSquare className='h-3 w-3' /> Open the original conversation
+                </Link>
+              )}
+            </div>
           </div>
         ))}
       </div>

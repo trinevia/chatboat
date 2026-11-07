@@ -11,7 +11,7 @@ export function Home() {
   const router = useRouter();
   const { data: suggestions } = useQuery({ queryKey: ['suggestions'], queryFn: api.suggestions });
   const start = useMutation({
-    mutationFn: (question: string) => api.createChat(question),
+    mutationFn: (question: string) => api.createChat({ title: question }),
     onSuccess: ({ id }, question) => router.push(`/c/${id}?q=${encodeURIComponent(question)}`),
     onError: () => toast.error('Could not start a new chat.'),
   });

@@ -1,4 +1,4 @@
-import type { ChartSpec, ChatListItem, SuggestedQuestions } from '@chatboat/shared';
+import type { ChartSpec, ChatListItem, Collection, PublicShare, ShareLinkInfo, SuggestedQuestions } from '@chatboat/shared';
 import type { UIMessage } from 'ai';
 
 export class ApiError extends Error {
@@ -24,7 +24,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export interface ChatDetail {
-  chat: { id: string; title: string; isSaved: boolean; groupId: number | null };
+  chat: { id: string; title: string; isSaved: boolean; groupId: number | null; context: ChartSpec | null };
   messages: UIMessage[];
 }
 export interface DashboardSummary { id: number; name: string; widgetCount: number; createdAt: string }
@@ -33,11 +33,24 @@ export interface DashboardDetail { id: number; name: string; widgets: Widget[] }
 
 export const api = {
   listChats: (q?: string) => request<ChatListItem[]>(`/chats${q ? `?q=${encodeURIComponent(q)}` : ''}`),
-  createChat: (title?: string) => request<{ id: string }>('/chats', { method: 'POST', body: JSON.stringify({ title }) }),
+  createChat: (body: { title?: string; contextChart?: ChartSpec } = {}) =>
+    request<{ id: string }>('/chats', { method: 'POST', body: JSON.stringify(body) }),
   getChat: (id: string) => request<ChatDetail>(`/chats/${id}`),
-  updateChat: (id: string, patch: { title?: string; isSaved?: boolean }) =>
+  updateChat: (id: string, patch: { title?: string; isSaved?: boolean; groupId?: number | null }) =>
     request(`/chats/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   deleteChat: (id: string) => request<void>(`/chats/${id}`, { method: 'DELETE' }),
+  listCollections: () => request<Collection[]>('/collections'),
+  createCollection: (name: string) =>
+    request<Collection>('/collections', { method: 'POST', body: JSON.stringify({ name }) }),
+  renameCollection: (id: number, name: string) =>
+    request<void>(`/collections/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
+  deleteCollection: (id: number) => request<void>(`/collections/${id}`, { method: 'DELETE' }),
+  getShare: (kind: 'chat' | 'dashboard', id: string) =>
+    request<ShareLinkInfo | null>(`/shares?kind=${kind}&id=${encodeURIComponent(id)}`),
+  createShare: (kind: 'chat' | 'dashboard', id: string) =>
+    request<ShareLinkInfo>('/shares', { method: 'POST', body: JSON.stringify({ kind, id }) }),
+  revokeShare: (token: string) => request<void>(`/shares/${token}`, { method: 'DELETE' }),
+  publicShare: (token: string) => request<PublicShare>(`/public/shares/${token}`),
   suggestions: () => request<SuggestedQuestions>('/suggestions'),
   feedback: (body: { messageId: string; rating: 'up' | 'down'; reasons?: string[]; comment?: string }) =>
     request<void>('/feedback', { method: 'POST', body: JSON.stringify(body) }),

@@ -15,11 +15,12 @@ import { and, asc, desc, eq, ilike, sql as dsql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { db, schema } from '@chatboat/db';
-import { chatPatch, type ChatListItem } from '@chatboat/shared';
+import { chartSpec, chatPatch, createChatInput, type ChatListItem } from '@chatboat/shared';
 import { getModel } from '../ai/model';
-import { SYSTEM_PROMPT, userContext } from '../ai/prompt';
+import { chartContext, SYSTEM_PROMPT, userContext } from '../ai/prompt';
 import { createTools } from '../ai/tools';
 import { requireUser, type AppEnv } from '../context';
+import { ownedCollection } from './collections';
 
 const { chat, message } = schema;
 const newMessageId = createIdGenerator({ prefix: 'msg', size: 16 });
@@ -88,13 +89,14 @@ export const chatRoutes = new Hono<AppEnv>()
   })
 
   // Create an empty chat; the first question is sent by the conversation page.
-  .post('/chats', zValidator('json', z.object({ title: z.string().max(200).optional() })), async c => {
-    const { title } = c.req.valid('json');
+  .post('/chats', zValidator('json', createChatInput), async c => {
+    const { title, contextChart } = c.req.valid('json');
     const id = generateId();
     await db.insert(chat).values({
       id,
       userId: c.get('user').id,
-      title: title ? title.slice(0, 80) : 'New chat',
+      title: title ? title.slice(0, 80) : contextChart ? `About: ${contextChart.title}`.slice(0, 80) : 'New chat',
+      context: contextChart ?? null,
     });
     return c.json({ id }, 201);
   })
@@ -106,13 +108,16 @@ export const chatRoutes = new Hono<AppEnv>()
   })
 
   .patch('/chats/:id', zValidator('json', chatPatch), async c => {
-    const row = await ownedChat(c.req.param('id'), c.get('user').id);
+    const userId = c.get('user').id;
+    const row = await ownedChat(c.req.param('id'), userId);
     if (!row) return c.json({ error: 'Not found' }, 404);
-    const [updated] = await db
-      .update(chat)
-      .set({ ...c.req.valid('json'), updatedAt: new Date() })
-      .where(eq(chat.id, row.id))
-      .returning();
+    const patch = c.req.valid('json');
+    // Only allow moving into the user's own collections.
+    if (patch.groupId != null && !(await ownedCollection(patch.groupId, userId))) {
+      return c.json({ error: 'Collection not found' }, 404);
+    }
+    // Renaming or filing a chat shouldn't move it to the top of "recent".
+    const [updated] = await db.update(chat).set(patch).where(eq(chat.id, row.id)).returning();
     return c.json(updated);
   })
 
@@ -157,7 +162,11 @@ export const chatRoutes = new Hono<AppEnv>()
     const { model } = getModel();
     const result = streamText({
       model,
-      system: `${SYSTEM_PROMPT}\n\n${userContext((user as { role?: string }).role ?? 'sales')}`,
+      system: [
+        SYSTEM_PROMPT,
+        userContext((user as { role?: string }).role ?? 'sales'),
+        ...(row.context ? [chartContext(chartSpec.parse(row.context))] : []),
+      ].join('\n\n'),
       messages: await convertToModelMessages(messages, { tools }),
       tools,
       stopWhen: stepCountIs(8),

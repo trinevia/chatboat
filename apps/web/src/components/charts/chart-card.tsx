@@ -48,7 +48,10 @@ function HowCalculated({ spec }: { spec: ChartSpec }) {
   return (
     <div className='space-y-3 text-sm'>
       <p className='text-text'>
-        {spec.explanation ?? 'No explanation was saved for this answer. The exact query is below.'}
+        {spec.explanation ??
+          (spec.sql
+            ? 'No explanation was saved for this answer. The exact query is below.'
+            : 'No explanation was saved for this answer.')}
       </p>
       {spec.sql && (
         <details className='group'>
@@ -67,8 +70,14 @@ export function ChartCard({
   onRefresh,
   onRemove,
   refreshing,
+  readOnly,
+  extraActions,
 }: {
   spec: ChartSpec;
+  /** Public share view: no "Add to dashboard". */
+  readOnly?: boolean;
+  /** Extra items at the top of the ⋯ menu. */
+  extraActions?: (close: () => void) => React.ReactNode;
   chatId?: string;
   onRefresh?: () => void;
   onRemove?: () => void;
@@ -119,7 +128,8 @@ export function ChartCard({
         };
         return (
           <>
-            {!onRemove && (
+            {extraActions?.(close)}
+            {!onRemove && !readOnly && (
               <MenuItem onClick={run(() => setPinOpen(true))}>
                 <LayoutDashboard className='h-4 w-4' /> Add to dashboard
               </MenuItem>
@@ -195,7 +205,7 @@ export function ChartCard({
 
       {spec.summary && tab !== 'how' && <p className='mt-3 text-sm text-muted'>{spec.summary}</p>}
 
-      <PinDialog open={pinOpen} onClose={() => setPinOpen(false)} spec={current} chatId={chatId} />
+      {!readOnly && <PinDialog open={pinOpen} onClose={() => setPinOpen(false)} spec={current} chatId={chatId} />}
       <Dialog
         open={fullscreen}
         onClose={() => setFullscreen(false)}

@@ -1,7 +1,7 @@
 import { getSessionCookie } from 'better-auth/cookies';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC = ['/login', '/signup', '/forgot-password', '/reset-password'];
+const PUBLIC = ['/login', '/signup', '/forgot-password', '/reset-password', '/s/'];
 
 /** Optimistic redirect based on the session cookie; the API still checks every request. */
 export function proxy(request: NextRequest) {
