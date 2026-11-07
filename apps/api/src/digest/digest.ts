@@ -1,7 +1,7 @@
 import { asc, eq } from 'drizzle-orm';
 import { db, schema } from '@chatboat/db';
 import { chartSpec, type ChartSpec } from '@chatboat/shared';
-import { runAnalystQuery } from '../ai/analyst-db';
+import { getSourceForChart, runOnSource } from '../data/sources';
 import { renderChartPng } from './chart-image';
 import { sendEmail } from './email';
 import { describeSchedule } from './schedule';
@@ -32,7 +32,7 @@ async function freshCharts(dashboardId: number) {
       const stored = chartSpec.parse(w.chart);
       if (!w.sql) return { widgetId: w.id, chart: stored };
       try {
-        const result = await runAnalystQuery(w.sql);
+        const result = await runOnSource(await getSourceForChart(stored.sourceId), w.sql);
         const chart = { ...stored, columns: result.columns, rows: result.rows };
         await db.update(dashboardWidget).set({ chart }).where(eq(dashboardWidget.id, w.id));
         return { widgetId: w.id, chart };

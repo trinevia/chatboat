@@ -12,6 +12,7 @@ import { insightRoutes } from './routes/insights';
 import { setupRoutes } from './routes/setup';
 import { invitationRoutes } from './routes/invitations';
 import { adminRoutes } from './routes/admin';
+import { dataSourceRoutes } from './routes/data-sources';
 
 const origin = process.env.WEB_ORIGIN ?? 'http://localhost:3000';
 
@@ -25,6 +26,7 @@ export const app = new Hono()
   .route('/api', setupRoutes)
   .route('/api', invitationRoutes)
   .route('/api', adminRoutes)
+  .route('/api', dataSourceRoutes)
   .route('/api', chatRoutes)
   .route('/api', dashboardRoutes)
   .route('/api', miscRoutes)

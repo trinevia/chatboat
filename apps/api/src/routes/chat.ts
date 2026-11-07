@@ -17,7 +17,8 @@ import { z } from 'zod';
 import { db, schema } from '@chatboat/db';
 import { chartSpec, chatPatch, createChatInput, type ChatListItem } from '@chatboat/shared';
 import { getModel } from '../ai/model';
-import { chartContext, SYSTEM_PROMPT, userContext } from '../ai/prompt';
+import { buildSystemPrompt, chartContext, userContext } from '../ai/prompt';
+import { getActiveSource } from '../data/sources';
 import { createTools } from '../ai/tools';
 import { requireUser, type AppEnv } from '../context';
 import { startUsage } from '../usage';
@@ -139,7 +140,9 @@ export const chatRoutes = new Hono<AppEnv>()
     const row = await ownedChat(body.id, user.id);
     if (!row) return c.json({ error: 'Not found' }, 404);
 
-    const tools = createTools();
+    // Questions are answered from whichever data source the admin made active.
+    const source = await getActiveSource();
+    const tools = createTools(source);
     const previous = await loadMessages(row.id);
     let messages: UIMessage[];
     try {
@@ -174,7 +177,7 @@ export const chatRoutes = new Hono<AppEnv>()
     const result = streamText({
       model,
       system: [
-        SYSTEM_PROMPT,
+        await buildSystemPrompt(source),
         userContext((user as { role?: string }).role ?? 'sales'),
         ...(row.context ? [chartContext(chartSpec.parse(row.context))] : []),
       ].join('\n\n'),

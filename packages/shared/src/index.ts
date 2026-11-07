@@ -66,6 +66,8 @@ export const chartSpec = z.object({
   seriesKey: z.string().optional(),
   summary: z.string().optional(),
   explanation: z.string().optional(),
+  /** Data source the SQL runs against (absent = the built-in sample data). */
+  sourceId: z.number().int().optional(),
   columns: z.array(z.string()),
   rows: z.array(rowSchema),
   sql: z.string().optional(),
@@ -227,6 +229,67 @@ export interface PendingInvite {
   expiresAt: string;
 }
 
+// ---- Data sources ------------------------------------------------------------------
+export const DATA_SOURCE_KINDS = ['sample', 'postgres', 'upload'] as const;
+export type DataSourceKind = (typeof DATA_SOURCE_KINDS)[number];
+
+export const pgConnectionInput = z.object({
+  host: z.string().trim().min(1).max(255),
+  port: z.coerce.number().int().min(1).max(65535).default(5432),
+  database: z.string().trim().min(1).max(128),
+  user: z.string().trim().min(1).max(128),
+  password: z.string().max(512),
+  ssl: z.boolean().default(false),
+});
+export type PgConnectionInput = z.infer<typeof pgConnectionInput>;
+
+export const createDataSourceInput = z.object({
+  name: z.string().trim().min(1).max(80),
+  connection: pgConnectionInput,
+  allowedTables: z.array(z.string().regex(/^[^.]+\.[^.]+$/)).min(1, 'Pick at least one table').max(500),
+});
+
+export const updateDataSourceInput = z.object({
+  name: z.string().trim().min(1).max(80).optional(),
+  allowedTables: z.array(z.string().regex(/^[^.]+\.[^.]+$/)).min(1).max(500).optional(),
+  notes: z.string().max(4000).optional(),
+  /** Leave out to keep the saved password. */
+  connection: pgConnectionInput.partial({ password: true }).optional(),
+});
+
+export const glossaryInput = z.object({
+  terms: z
+    .array(z.object({ term: z.string().trim().min(1).max(80), definition: z.string().trim().min(1).max(500) }))
+    .max(100),
+});
+
+export interface TableSummary {
+  schema: string;
+  table: string;
+  rows: number;
+  columns: { name: string; type: string }[];
+}
+
+export interface DataSourceInfo {
+  id: number;
+  name: string;
+  kind: DataSourceKind;
+  isActive: boolean;
+  /** Connection details without the password. */
+  config: { host?: string; port?: number; database?: string; user?: string; ssl?: boolean };
+  allowedTables: string[];
+  notes: string;
+  updatedAt: string;
+}
+
+export interface ConnectionCheckResult {
+  ok: boolean;
+  error?: string;
+  canWrite?: boolean;
+  isSuperuser?: boolean;
+  tables?: TableSummary[];
+}
+
 export const createChatInput = z.object({
   title: z.string().max(200).optional(),
   /** Start the chat from an existing chart ("Ask about this chart"). */
@@ -262,6 +325,9 @@ export interface SuggestedQuestions {
   recent: string[];
   roleBased: string[];
   role: string;
+  /** Which kind of data questions are answered from (changes home-page wording). */
+  sourceKind: 'sample' | 'postgres' | 'upload';
+  sourceName: string;
 }
 
 

@@ -41,3 +41,29 @@ describe('schema doc', () => {
     for (const t of BIZ_TABLES) expect(BIZ_SCHEMA_DOC).toContain(`biz.${t}(`);
   });
 });
+
+describe('guardSql with a company allow-list', () => {
+  const opts = { allowedTables: new Set(['public.orders', 'sales.customers']), defaultSchema: 'public' };
+
+  it('allows listed tables, qualified or not (unqualified means the default schema)', () => {
+    expect(() => guardSql('SELECT count(*) FROM orders', opts)).not.toThrow();
+    expect(() => guardSql('SELECT * FROM public.orders o JOIN sales.customers c ON c.id = o.customer_id', opts)).not.toThrow();
+  });
+
+  it('rejects tables that are not on the list', () => {
+    expect(() => guardSql('SELECT * FROM public.salaries', opts)).toThrow(UnsafeSqlError);
+    expect(() => guardSql('SELECT * FROM customers', opts)).toThrow(UnsafeSqlError); // public.customers, not sales.customers
+    expect(() => guardSql('SELECT * FROM pg_catalog.pg_user', opts)).toThrow(UnsafeSqlError);
+  });
+
+  it('still allows CTEs and still rejects writes', () => {
+    expect(() => guardSql('WITH x AS (SELECT * FROM orders) SELECT * FROM x', opts)).not.toThrow();
+    expect(() => guardSql('DELETE FROM orders', opts)).toThrow(UnsafeSqlError);
+  });
+
+  it('allows any table in an allowed schema for uploads', () => {
+    const uploads = { allowedSchemas: ['uploads'], defaultSchema: 'uploads' };
+    expect(() => guardSql('SELECT * FROM sales_2025', uploads)).not.toThrow();
+    expect(() => guardSql('SELECT * FROM biz.invoices', uploads)).toThrow(UnsafeSqlError);
+  });
+});

@@ -13,9 +13,10 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Row } from '@chatboat/shared';
-import { runAnalystQuery } from '../src/ai/analyst-db';
+import { readFile } from 'node:fs/promises';
+import { getActiveSource, getSourceForChart, runOnSource, type DataSource } from '../src/data/sources';
 import { getModel, modelFor } from '../src/ai/model';
-import { SYSTEM_PROMPT, userContext } from '../src/ai/prompt';
+import { buildSystemPrompt, userContext } from '../src/ai/prompt';
 import { createTools } from '../src/ai/tools';
 import { CASES, type EvalCase } from './cases';
 import { score } from './score';
@@ -26,7 +27,7 @@ const arg = (name: string) => {
   return i === -1 ? undefined : process.argv[i + 1];
 };
 
-const limit = Number(arg('limit') ?? CASES.length);
+const limit = Number(arg('limit') ?? 1000);
 const only = arg('case')?.split(',');
 // Free NVIDIA accounts allow few parallel requests; 1 avoids rate-limit errors.
 const concurrency = Number(arg('concurrency') ?? 1);
@@ -39,7 +40,12 @@ const models = (arg('models') ?? '')
   });
 if (!models.length) models.push(getModel());
 
-const cases = CASES.filter(c => !only || only.includes(c.id)).slice(0, limit);
+// --cases company.json runs a company's own question list against the active data
+// source (each item: { id, question, sql }); otherwise the built-in sample cases.
+const casesFile = arg('cases');
+let source: DataSource;
+let allCases: EvalCase[] = CASES;
+let cases: EvalCase[] = [];
 
 interface Outcome {
   id: string;
@@ -54,12 +60,12 @@ interface Outcome {
 }
 
 async function runCase(c: EvalCase, expected: Row[], model: ReturnType<typeof getModel>): Promise<Outcome> {
-  const tools = createTools();
+  const tools = createTools(source);
   const started = Date.now();
   try {
     const res = await generateText({
       model: model.model,
-      system: `${SYSTEM_PROMPT}\n\n${userContext('executive')}`,
+      system: `${await buildSystemPrompt(source)}\n\n${userContext('executive')}`,
       prompt: c.question,
       tools,
       stopWhen: stepCountIs(8),
@@ -118,9 +124,16 @@ async function pool<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>) {
 }
 
 async function main() {
-  console.log(`Computing reference answers for ${cases.length} cases…`);
+  if (casesFile) {
+    allCases = JSON.parse(await readFile(casesFile, 'utf8')) as EvalCase[];
+    source = await getActiveSource();
+  } else {
+    source = await getSourceForChart(undefined); // built-in cases are about the sample data
+  }
+  cases = allCases.filter(c => !only || only.includes(c.id)).slice(0, limit);
+  console.log(`Data source: ${source.name}. Computing reference answers for ${cases.length} cases…`);
   const expected = new Map<string, Row[]>();
-  for (const c of cases) expected.set(c.id, (await runAnalystQuery(c.sql)).rows);
+  for (const c of cases) expected.set(c.id, (await runOnSource(source, c.sql)).rows);
 
   const lines: string[] = [`# Chatboat accuracy eval — ${new Date().toISOString()}`, ''];
   const summary: string[] = ['| Model | Correct | Errors (not scored) | Avg time | Tokens (in / out) |', '|---|---|---|---|---|'];

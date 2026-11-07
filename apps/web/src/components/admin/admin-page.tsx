@@ -12,6 +12,7 @@ import { BrandMark, useBranding } from '@/components/branding';
 import { Button } from '@/components/ui/button';
 import { useDialogs } from '@/components/ui/dialog';
 import { Input, Label } from '@/components/ui/input';
+import { DataTab } from './data-tab';
 
 const selectCls = 'h-8 rounded-md border border-border bg-surface px-2 text-xs capitalize';
 const errMsg = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
@@ -310,7 +311,7 @@ function CompanyTab() {
   );
 }
 
-const TABS = { members: 'Members', company: 'Company' } as const;
+const TABS = { members: 'Members', data: 'Data sources', company: 'Company' } as const;
 
 export function AdminPage() {
   const { data: session, isPending } = useSession();
@@ -322,7 +323,7 @@ export function AdminPage() {
   return (
     <div className='mx-auto max-w-5xl px-4 py-8'>
       <h1 className='text-xl font-semibold'>Admin</h1>
-      <p className='mt-1 text-sm text-muted'>Manage who can use Chatboat and how it looks for your company.</p>
+      <p className='mt-1 text-sm text-muted'>Manage who can use Chatboat, which data it answers from, and how it looks for your company.</p>
       <div className='mt-6 flex gap-1 border-b border-border' role='tablist'>
         {(Object.keys(TABS) as (keyof typeof TABS)[]).map(t => (
           <button
@@ -339,7 +340,9 @@ export function AdminPage() {
           </button>
         ))}
       </div>
-      <div className='mt-6'>{tab === 'members' ? <MembersTab /> : <CompanyTab />}</div>
+      <div className='mt-6'>
+        {tab === 'members' ? <MembersTab /> : tab === 'data' ? <DataTab /> : <CompanyTab />}
+      </div>
     </div>
   );
 }

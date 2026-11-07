@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
   integer,
@@ -87,6 +87,35 @@ export const invitation = app.table('invitation', {
   acceptedAt: timestamp('accepted_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+// ---- Data sources ------------------------------------------------------------
+/**
+ * Where the AI's questions are answered from. Exactly one is active: the sample
+ * data, a company database (read-only login) or the uploaded spreadsheets.
+ */
+export const dataSource = app.table(
+  'data_source',
+  {
+    id: serial('id').primaryKey(),
+    name: text('name').notNull(),
+    kind: text('kind', { enum: ['sample', 'postgres', 'upload'] }).notNull(),
+    /** Non-secret connection details: host, port, database, user, ssl. */
+    config: jsonb('config').notNull().default({}),
+    /** Encrypted password (AES-256-GCM with DATA_ENCRYPTION_KEY). */
+    secret: text('secret'),
+    /** Tables the AI may query, as "schema.table". */
+    allowedTables: text('allowed_tables').array().notNull().default([]),
+    /** Admin's notes for the AI about this data (meanings of columns, gotchas). */
+    notes: text('notes').notNull().default(''),
+    /** Example questions generated from the tables, shown on the home page. */
+    suggestions: text('suggestions').array().notNull().default([]),
+    isActive: boolean('is_active').notNull().default(false),
+    lastCheckedAt: timestamp('last_checked_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  t => [uniqueIndex('data_source_one_active').on(t.isActive).where(sql`${t.isActive}`)]
+);
 
 // ---- Chats ---------------------------------------------------------------
 export const chatGroup = app.table('chat_group', {

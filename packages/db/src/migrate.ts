@@ -34,6 +34,11 @@ REVOKE ALL ON SCHEMA app FROM analyst_ro;
 REVOKE ALL ON ALL TABLES IN SCHEMA app FROM analyst_ro;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 GRANT USAGE ON SCHEMA biz TO analyst_ro;
+-- Uploaded spreadsheets become tables here; the AI may read them, never write.
+CREATE SCHEMA IF NOT EXISTS uploads;
+GRANT USAGE ON SCHEMA uploads TO analyst_ro;
+GRANT SELECT ON ALL TABLES IN SCHEMA uploads TO analyst_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA uploads GRANT SELECT ON TABLES TO analyst_ro;
 GRANT SELECT ON ALL TABLES IN SCHEMA biz TO analyst_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA biz GRANT SELECT ON TABLES TO analyst_ro;
 `);

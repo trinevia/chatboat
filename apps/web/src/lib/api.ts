@@ -2,7 +2,11 @@ import type {
   ChartSpec,
   ChatListItem,
   Collection,
+  ConnectionCheckResult,
+  DataSourceInfo,
   InsightInfo,
+  PgConnectionInput,
+  TableSummary,
   Member,
   PendingInvite,
   SetupStatus,
@@ -75,6 +79,28 @@ export const api = {
   updateMember: (id: string, body: { accessRole?: string; role?: string }) =>
     request<void>(`/admin/members/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   removeMember: (id: string) => request<void>(`/admin/members/${id}`, { method: 'DELETE' }),
+  dataSources: () => request<DataSourceInfo[]>('/admin/data-sources'),
+  checkConnection: (body: PgConnectionInput) =>
+    request<ConnectionCheckResult>('/admin/data-sources/check', { method: 'POST', body: JSON.stringify(body) }),
+  createDataSource: (body: { name: string; connection: PgConnectionInput; allowedTables: string[] }) =>
+    request<DataSourceInfo>('/admin/data-sources', { method: 'POST', body: JSON.stringify(body) }),
+  updateDataSource: (id: number, body: { name?: string; allowedTables?: string[]; notes?: string }) =>
+    request<DataSourceInfo>(`/admin/data-sources/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  activateDataSource: (id: number) => request<DataSourceInfo>(`/admin/data-sources/${id}/activate`, { method: 'POST' }),
+  deleteDataSource: (id: number) => request<void>(`/admin/data-sources/${id}`, { method: 'DELETE' }),
+  dataSourceSchema: (id: number) => request<{ doc: string; tables: TableSummary[] }>(`/admin/data-sources/${id}/schema`),
+  uploadSpreadsheet: async (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch('/api/admin/uploads', { method: 'POST', body: form, credentials: 'include' });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ApiError(res.status, body.error ?? 'Upload failed');
+    return body as { sourceId: number; tables: { table: string; rows: number; columns: { name: string; type: string }[] }[] };
+  },
+  deleteUploadedTable: (table: string) => request<void>(`/admin/uploads/${encodeURIComponent(table)}`, { method: 'DELETE' }),
+  glossary: () => request<{ terms: { term: string; definition: string }[] }>('/admin/glossary'),
+  saveGlossary: (terms: { term: string; definition: string }[]) =>
+    request<{ terms: { term: string; definition: string }[] }>('/admin/glossary', { method: 'PUT', body: JSON.stringify({ terms }) }),
   saveBranding: (body: Branding) => request<Branding>('/admin/branding', { method: 'PUT', body: JSON.stringify(body) }),
 
   listChats: (q?: string) => request<ChatListItem[]>(`/chats${q ? `?q=${encodeURIComponent(q)}` : ''}`),

@@ -4,7 +4,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { db, schema } from '@chatboat/db';
 import { chartSpec, pinWidgetInput, type ChartSpec } from '@chatboat/shared';
-import { runAnalystQuery } from '../ai/analyst-db';
+import { getSourceForChart, runOnSource } from '../data/sources';
 import { requireUser, type AppEnv } from '../context';
 
 const { dashboard, dashboardWidget } = schema;
@@ -70,8 +70,9 @@ export const dashboardRoutes = new Hono<AppEnv>()
       .where(eq(dashboardWidget.id, Number(c.req.param('id'))));
     if (!w || w.userId !== c.get('user').id) return c.json({ error: 'Not found' }, 404);
     if (!w.widget.sql) return c.json({ error: 'Widget has no query' }, 400);
-    const result = await runAnalystQuery(w.widget.sql);
-    const chart: ChartSpec = { ...chartSpec.parse(w.widget.chart), columns: result.columns, rows: result.rows };
+    const stored = chartSpec.parse(w.widget.chart);
+    const result = await runOnSource(await getSourceForChart(stored.sourceId), w.widget.sql);
+    const chart: ChartSpec = { ...stored, columns: result.columns, rows: result.rows };
     const [updated] = await db
       .update(dashboardWidget)
       .set({ chart })

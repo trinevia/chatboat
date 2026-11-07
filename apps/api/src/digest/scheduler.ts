@@ -3,6 +3,7 @@ import { db, schema } from '@chatboat/db';
 import { refreshInsightsIfStale } from '../insights/compute';
 import { runSubscription } from './digest';
 import { nextRunAt } from './schedule';
+import { getActiveSource } from '../data/sources';
 
 const { subscription } = schema;
 const TICK_MS = 60_000;
@@ -32,7 +33,7 @@ async function tick() {
   try {
     const ids = await claimDue();
     for (const id of ids) await runSubscription(id, 'schedule');
-    await refreshInsightsIfStale();
+    if ((await getActiveSource()).kind === 'sample') await refreshInsightsIfStale();
   } catch (e) {
     console.error('[scheduler] tick failed:', e);
   }

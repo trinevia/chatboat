@@ -22,7 +22,9 @@ export function Home() {
       <div className='mb-8 text-center'>
         <h1 className='text-2xl font-semibold tracking-tight sm:text-3xl'>Ask anything about your data</h1>
         <p className='mt-2 text-sm text-muted'>
-          Sales, invoices, customers and inventory. Ask in plain English and get a chart back.
+          {!suggestions || suggestions.sourceKind === 'sample'
+            ? 'Sales, invoices, customers and inventory. Ask in plain English and get a chart back.'
+            : `Answers come from ${suggestions.sourceName}. Ask in plain English and get a chart back.`}
         </p>
       </div>
       <AskBox
@@ -30,14 +32,18 @@ export function Home() {
         autoFocus
         busy={start.isPending}
         onSubmit={q => start.mutate(q)}
-        placeholder='Show me the sales data for California'
+        placeholder={
+          !suggestions || suggestions.sourceKind === 'sample'
+            ? 'Show me the sales data for California'
+            : (suggestions.roleBased[0] ?? 'Ask a question about your data')
+        }
       />
       <InsightCards onAsk={q => start.mutate(q)} disabled={start.isPending} />
       {suggestions && (
         <div className='mt-8 grid gap-6 sm:grid-cols-2'>
           <section>
             <h2 className='mb-2 flex items-center gap-1.5 text-xs font-medium text-muted'>
-              <Sparkles className='h-3.5 w-3.5' /> Suggested for {suggestions.role}
+              <Sparkles className='h-3.5 w-3.5' /> {suggestions.sourceKind === 'sample' ? `Suggested for ${suggestions.role}` : 'Suggested questions'}
             </h2>
             <ul className='space-y-1.5'>
               {suggestions.roleBased.map(q => (

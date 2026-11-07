@@ -5,6 +5,7 @@ import { db, schema } from '@chatboat/db';
 import { feedbackInput, type Role, type SuggestedQuestions } from '@chatboat/shared';
 import { requireUser, type AppEnv } from '../context';
 import { usageSummary } from '../usage';
+import { getActiveSource } from '../data/sources';
 
 const ROLE_QUESTIONS: Record<Role, string[]> = {
   sales: [
@@ -53,7 +54,14 @@ export const miscRoutes = new Hono<AppEnv>()
           .filter((t): t is string => !!t)
       ),
     ].slice(0, 5);
-    const body: SuggestedQuestions = { recent, roleBased: ROLE_QUESTIONS[role], role };
+    const source = await getActiveSource();
+    const roleBased =
+      source.kind === 'sample'
+        ? ROLE_QUESTIONS[role]
+        : source.suggestions.length
+          ? source.suggestions
+          : ['What tables do you have?', 'Show me a summary of the most recent records'];
+    const body: SuggestedQuestions = { recent, roleBased, role, sourceKind: source.kind, sourceName: source.name };
     return c.json(body);
   })
 

@@ -43,6 +43,13 @@
       "when": 1794039704119,
       "tag": "0005_low_luke_cage",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794042400419,
+      "tag": "0006_lean_onslaught",
+      "breakpoints": true
     }
   ]
 }

@@ -6,7 +6,7 @@ import {
   type ChartSpec,
   type Row,
 } from '@chatboat/shared';
-import { runAnalystQuery } from './analyst-db';
+import { runOnSource, type DataSource } from '../data/sources';
 import { UnsafeSqlError } from './sql-guard';
 
 const PREVIEW_ROWS = 30;
@@ -16,19 +16,19 @@ const PREVIEW_ROWS = 30;
  * renderChart turns a queryId into a chart spec that streams to the browser.
  * The model only ever sees a short preview, which keeps token usage low.
  */
-export function createTools() {
+export function createTools(source: DataSource) {
   const results = new Map<string, { sql: string; columns: string[]; rows: Row[] }>();
 
   return {
     runSql: tool({
       description:
-        'Run one read-only PostgreSQL SELECT against the biz schema. Returns a queryId, the columns, the row count and a preview of the rows.',
+        'Run one read-only PostgreSQL SELECT against the listed tables. Returns a queryId, the columns, the row count and a preview of the rows.',
       inputSchema: z.object({
-        sql: z.string().describe('A single SELECT statement over biz.* tables.'),
+        sql: z.string().describe('A single SELECT statement over the listed tables.'),
       }),
       execute: async ({ sql }) => {
         try {
-          const result = await runAnalystQuery(sql);
+          const result = await runOnSource(source, sql);
           const queryId = `q${results.size + 1}`;
           results.set(queryId, result);
           return {
@@ -73,6 +73,7 @@ export function createTools() {
             columns: result.columns,
             rows: result.rows,
             sql: result.sql,
+            ...(source.kind === 'sample' ? {} : { sourceId: source.id }),
           },
         };
       },

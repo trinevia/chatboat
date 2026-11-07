@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 import { useSession } from '@/lib/auth-client';
 import { Brand, useBranding } from '@/components/branding';
@@ -11,10 +11,12 @@ function AuthRedirects() {
   const { data: status } = useBranding();
   const router = useRouter();
   const pathname = usePathname();
+  const next = useSearchParams().get('next');
   useEffect(() => {
-    if (session) router.replace('/');
+    // Only relative paths, so a crafted link can't send people to another site.
+    if (session) router.replace(next && next.startsWith('/') && !next.startsWith('//') ? next : '/');
     else if (status?.needsSetup && pathname !== '/setup') router.replace('/setup');
-  }, [session, status?.needsSetup, pathname, router]);
+  }, [session, status?.needsSetup, pathname, router, next]);
   return null;
 }
 

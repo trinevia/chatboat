@@ -4,6 +4,7 @@ import { db, schema } from '@chatboat/db';
 import type { InsightInfo } from '@chatboat/shared';
 import { computeInsights, refreshInsightsIfStale } from '../insights/compute';
 import { requireUser, type AppEnv } from '../context';
+import { getActiveSource } from '../data/sources';
 
 const { insight } = schema;
 
@@ -22,6 +23,8 @@ async function list(): Promise<InsightInfo[]> {
 export const insightRoutes = new Hono<AppEnv>()
   .use(requireUser)
   .get('/insights', async c => {
+    // These checks are written for the sample tables; company data has none yet.
+    if ((await getActiveSource()).kind !== 'sample') return c.json([]);
     await refreshInsightsIfStale();
     return c.json(await list());
   })
