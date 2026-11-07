@@ -159,6 +159,57 @@ export const shareLink = app.table('share_link', {
   revokedAt: timestamp('revoked_at'),
 });
 
+// ---- Scheduled digests ----------------------------------------------------------
+/** Emails a dashboard on a schedule. The tick in apps/api claims rows whose next_run_at has passed. */
+export const subscription = app.table('subscription', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  dashboardId: integer('dashboard_id')
+    .notNull()
+    .references(() => dashboard.id, { onDelete: 'cascade' }),
+  frequency: text('frequency', { enum: ['daily', 'weekly', 'monthly'] }).notNull(),
+  hour: integer('hour').notNull(),
+  minute: integer('minute').notNull().default(0),
+  /** 0 = Sunday … 6 = Saturday (weekly only). */
+  dayOfWeek: integer('day_of_week'),
+  /** 1–28 (monthly only, so every month has the day). */
+  dayOfMonth: integer('day_of_month'),
+  timezone: text('timezone').notNull(),
+  isActive: boolean('is_active').notNull().default(true),
+  nextRunAt: timestamp('next_run_at').notNull(),
+  lastRunAt: timestamp('last_run_at'),
+  /** Per-widget totals from the last digest, used to say what changed. */
+  lastTotals: jsonb('last_totals'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const subscriptionRun = app.table('subscription_run', {
+  id: serial('id').primaryKey(),
+  subscriptionId: integer('subscription_id')
+    .notNull()
+    .references(() => subscription.id, { onDelete: 'cascade' }),
+  trigger: text('trigger', { enum: ['schedule', 'manual'] }).notNull(),
+  status: text('status', { enum: ['sent', 'failed'] }).notNull(),
+  error: text('error'),
+  sentTo: text('sent_to'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+/** Company-wide observations shown on the home page; recomputed by a daily job. */
+export const insight = app.table('insight', {
+  key: text('key').primaryKey(),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  /** Question to ask when the user clicks the insight. */
+  question: text('question').notNull(),
+  tone: text('tone', { enum: ['good', 'bad', 'neutral'] }).notNull(),
+  /** Bigger = more important; the home page shows the top few. */
+  score: integer('score').notNull().default(0),
+  computedAt: timestamp('computed_at').notNull().defaultNow(),
+});
+
 export const chatRelations = relations(chat, ({ many, one }) => ({
   messages: many(message),
   group: one(chatGroup, { fields: [chat.groupId], references: [chatGroup.id] }),

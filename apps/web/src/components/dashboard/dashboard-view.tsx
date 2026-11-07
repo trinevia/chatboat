@@ -3,7 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, MessageSquarePlus, Pencil } from 'lucide-react';
+import { ArrowLeft, Mail, MessageSquare, MessageSquarePlus, Pencil } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { SubscriptionDialog } from '@/components/subscriptions/subscription-dialog';
 import type { ChartSpec } from '@chatboat/shared';
 import { MenuItem } from '@/components/ui/menu';
 import { ShareButton } from '@/components/share/share-dialog';
@@ -18,6 +21,9 @@ export function DashboardView({ id }: { id: number }) {
   const router = useRouter();
   const key = ['dashboard', id];
   const { data, isLoading, error } = useQuery({ queryKey: key, queryFn: () => api.getDashboard(id) });
+  const { data: subs } = useQuery({ queryKey: ['subscriptions', id], queryFn: () => api.listSubscriptions(id) });
+  const subscription = subs?.subscriptions[0];
+  const [digestOpen, setDigestOpen] = useState(false);
 
   const refresh = useMutation({
     mutationFn: api.refreshWidget,
@@ -72,10 +78,28 @@ export function DashboardView({ id }: { id: number }) {
         >
           <Pencil className='h-4 w-4' />
         </button>
-        <div className='ml-auto'>
+        <div className='ml-auto flex items-center gap-2'>
+          <Button variant='secondary' size='sm' onClick={() => setDigestOpen(true)}>
+            <Mail className='h-4 w-4' /> {subscription ? 'Edit digest' : 'Email digest'}
+          </Button>
           <ShareButton kind='dashboard' id={String(data.id)} />
         </div>
       </div>
+      {subscription && (
+        <p className='mt-1 text-xs text-muted'>
+          Emailed {subscription.isActive ? subscription.schedule.charAt(0).toLowerCase() + subscription.schedule.slice(1) : '(paused)'} ·{' '}
+          <Link href='/subscriptions' className='hover:text-brand'>
+            Manage
+          </Link>
+        </p>
+      )}
+      <SubscriptionDialog
+        open={digestOpen}
+        onClose={() => setDigestOpen(false)}
+        dashboardId={data.id}
+        dashboardName={data.name}
+        existing={subscription}
+      />
       {!data.widgets.length && <p className='mt-6 text-sm text-muted'>This dashboard is empty.</p>}
       <div className='mt-6 grid gap-4 lg:grid-cols-2'>
         {data.widgets.map(w => (

@@ -1,4 +1,14 @@
-import type { ChartSpec, ChatListItem, Collection, PublicShare, ShareLinkInfo, SuggestedQuestions } from '@chatboat/shared';
+import type {
+  ChartSpec,
+  ChatListItem,
+  Collection,
+  InsightInfo,
+  PublicShare,
+  ShareLinkInfo,
+  SubscriptionInfo,
+  SubscriptionInput,
+  SuggestedQuestions,
+} from '@chatboat/shared';
 import type { UIMessage } from 'ai';
 
 export class ApiError extends Error {
@@ -51,6 +61,19 @@ export const api = {
     request<ShareLinkInfo>('/shares', { method: 'POST', body: JSON.stringify({ kind, id }) }),
   revokeShare: (token: string) => request<void>(`/shares/${token}`, { method: 'DELETE' }),
   publicShare: (token: string) => request<PublicShare>(`/public/shares/${token}`),
+  listSubscriptions: (dashboardId?: number) =>
+    request<{ emailConfigured: boolean; subscriptions: SubscriptionInfo[] }>(
+      `/subscriptions${dashboardId ? `?dashboardId=${dashboardId}` : ''}`
+    ),
+  createSubscription: (body: SubscriptionInput) =>
+    request<SubscriptionInfo>('/subscriptions', { method: 'POST', body: JSON.stringify(body) }),
+  updateSubscription: (id: number, body: SubscriptionInput | { isActive: boolean }) =>
+    request<SubscriptionInfo>(`/subscriptions/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteSubscription: (id: number) => request<void>(`/subscriptions/${id}`, { method: 'DELETE' }),
+  sendSubscription: (id: number) =>
+    request<{ ok: boolean; sentTo?: string; error?: string }>(`/subscriptions/${id}/send`, { method: 'POST' }),
+  insights: () => request<InsightInfo[]>('/insights'),
+  refreshInsights: () => request<InsightInfo[]>('/insights/refresh', { method: 'POST' }),
   suggestions: () => request<SuggestedQuestions>('/suggestions'),
   feedback: (body: { messageId: string; rating: 'up' | 'down'; reasons?: string[]; comment?: string }) =>
     request<void>('/feedback', { method: 'POST', body: JSON.stringify(body) }),

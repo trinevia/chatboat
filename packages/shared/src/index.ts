@@ -127,6 +127,39 @@ export interface ShareLinkInfo {
   updatedAt: string;
 }
 
+// ---- Subscriptions & insights -----------------------------------------------------
+export const subscriptionInput = z
+  .object({
+    dashboardId: z.number().int(),
+    frequency: z.enum(['daily', 'weekly', 'monthly']),
+    hour: z.number().int().min(0).max(23),
+    minute: z.number().int().min(0).max(59),
+    dayOfWeek: z.number().int().min(0).max(6).nullable(),
+    dayOfMonth: z.number().int().min(1).max(28).nullable(),
+    timezone: z.string().min(1).max(64),
+  })
+  .refine(s => s.frequency !== 'weekly' || s.dayOfWeek != null, { message: 'Pick a day of the week' })
+  .refine(s => s.frequency !== 'monthly' || s.dayOfMonth != null, { message: 'Pick a day of the month' });
+export type SubscriptionInput = z.infer<typeof subscriptionInput>;
+
+export interface SubscriptionInfo extends SubscriptionInput {
+  id: number;
+  dashboardName: string;
+  isActive: boolean;
+  schedule: string;
+  nextRunAt: string;
+  lastRun: { status: 'sent' | 'failed'; at: string; error: string | null } | null;
+}
+
+export interface InsightInfo {
+  key: string;
+  title: string;
+  body: string;
+  question: string;
+  tone: 'good' | 'bad' | 'neutral';
+  computedAt: string;
+}
+
 export const createChatInput = z.object({
   title: z.string().max(200).optional(),
   /** Start the chat from an existing chart ("Ask about this chart"). */

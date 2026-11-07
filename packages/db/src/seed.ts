@@ -96,7 +96,12 @@ async function main() {
   for (let m = new Date(start); m <= today; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
     const monthsIn = (m.getFullYear() - start.getFullYear()) * 12 + m.getMonth() - start.getMonth();
     const seasonal = m.getMonth() >= 9 ? 1.35 : m.getMonth() <= 1 ? 0.85 : 1;
-    const count = Math.round((180 + monthsIn * 6) * seasonal);
+    // The current month is only partly over: scale its volume to the days elapsed,
+    // otherwise a full month of invoices lands in a few days and trends look wrong.
+    const daysInMonth = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+    const isCurrent = m.getFullYear() === today.getFullYear() && m.getMonth() === today.getMonth();
+    const share = isCurrent ? today.getDate() / daysInMonth : 1;
+    const count = Math.round((180 + monthsIn * 6) * seasonal * share);
     for (let i = 0; i < count; i++) {
       const customer = faker.helpers.arrayElement(insertedCustomers);
       const reps = insertedReps.filter(r => r.regionId === customer.regionId);

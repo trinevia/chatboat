@@ -92,8 +92,24 @@ packages/db/     Drizzle schemas (app + biz), migrations, seed script, schema do
 packages/shared/ Zod chart spec, DTOs, long-to-wide pivot helper
 ```
 
+## Features
+
+- **Ask in plain English**: streamed answers with charts, follow-up questions, and a plain-English "How it was calculated".
+- **Charts**: switch chart type, full screen, copy data, download PNG / PDF / CSV.
+- **Dashboards**: pin charts; refresh re-runs the saved SQL without the AI. "Ask about this chart" starts a chat with the chart as context.
+- **Collections**: folders for chats, with drag and drop.
+- **Share links**: read-only snapshots of a chat or dashboard at `/s/<token>`, no login needed, SQL hidden, revocable.
+- **Email digests**: email a dashboard daily, weekly or monthly in your timezone, with fresh numbers, chart images and what changed since last time.
+- **Worth a look**: home-page insights (sales pace, overdue balance, low stock, regional swings) recalculated every 6 hours.
+
+## Email digests and the scheduler
+
+The API runs a one-minute tick that claims due subscriptions with `SELECT … FOR UPDATE SKIP LOCKED`, so several API instances can run without sending a digest twice. Set `DISABLE_SCHEDULER=1` on instances that shouldn't send.
+
+Locally, `docker compose up -d` also starts **Mailpit**, a fake inbox: every digest lands at http://localhost:8025 and nothing reaches real people. In production, set `SMTP_URL` to your provider (Resend, SES, Postmark, …) and `MAIL_FROM` to a verified sender. Digests go to the account's own email address.
+
 ## Not built yet
 
-- Reports and scheduled questions (planned with pg-boss, re-running the stored SQL on a cron).
-- Chat groups/folders in the sidebar (the `chat_group` table exists; there is no UI yet).
-- Sending real password-reset emails. In development the reset link is printed in the API log.
+- Digests to other recipients (today they go to your own email only).
+- Accuracy test set, CI, Docker deploy, rate limits and cost tracking (Phase 4).
+- Teams/workspaces and connecting your own data sources.

@@ -7,6 +7,8 @@ import { dashboardRoutes } from './routes/dashboards';
 import { miscRoutes } from './routes/misc';
 import { collectionRoutes } from './routes/collections';
 import { publicShareRoutes, shareRoutes } from './routes/shares';
+import { subscriptionRoutes } from './routes/subscriptions';
+import { insightRoutes } from './routes/insights';
 
 const origin = process.env.WEB_ORIGIN ?? 'http://localhost:3000';
 
@@ -22,6 +24,8 @@ export const app = new Hono()
   .route('/api', miscRoutes)
   .route('/api', collectionRoutes)
   .route('/api', shareRoutes)
+  .route('/api', subscriptionRoutes)
+  .route('/api', insightRoutes)
   .onError((err, c) => {
     console.error(err);
     return c.json({ error: 'Internal server error' }, 500);

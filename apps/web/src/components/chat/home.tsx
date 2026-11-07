@@ -6,6 +6,7 @@ import { History, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { AskBox } from './ask-box';
+import { InsightCards } from './insight-cards';
 
 export function Home() {
   const router = useRouter();
@@ -31,6 +32,7 @@ export function Home() {
         onSubmit={q => start.mutate(q)}
         placeholder='Show me the sales data for California'
       />
+      <InsightCards onAsk={q => start.mutate(q)} disabled={start.isPending} />
       {suggestions && (
         <div className='mt-8 grid gap-6 sm:grid-cols-2'>
           <section>
