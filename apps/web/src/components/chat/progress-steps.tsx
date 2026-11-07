@@ -12,7 +12,7 @@ type ToolPart = { type: string; state: string; output?: unknown };
 function deriveSteps(message: UIMessage | undefined) {
   const parts = (message?.role === 'assistant' ? message.parts : []) as ToolPart[];
   const tool = (name: string) => parts.filter(p => p.type === `tool-${name}`);
-  const sql = tool('runSql');
+  const sql = [...tool('runSql'), ...tool('runMongo')];
   const chart = tool('renderChart');
   const hasText = parts.some(p => p.type === 'text' && (p as unknown as { text: string }).text.trim());
 

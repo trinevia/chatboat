@@ -84,7 +84,7 @@ async function runCase(c: EvalCase, expected: Row[], model: ReturnType<typeof ge
       rows = chart.chart.rows;
       sql = chart.chart.sql;
     } else {
-      const lastSql = results.filter(r => r.toolName === 'runSql' && (r.output as SqlOut).ok).pop();
+      const lastSql = results.filter(r => (r.toolName === 'runSql' || r.toolName === 'runMongo') && (r.output as SqlOut).ok).pop();
       rows = (lastSql?.output as SqlOut | undefined)?.preview ?? null;
     }
     const verdict = score(expected, rows, { allowExtraRows: c.allowExtraRows });

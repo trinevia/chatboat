@@ -82,6 +82,10 @@ export const api = {
   dataSources: () => request<DataSourceInfo[]>('/admin/data-sources'),
   checkConnection: (body: PgConnectionInput) =>
     request<ConnectionCheckResult>('/admin/data-sources/check', { method: 'POST', body: JSON.stringify(body) }),
+  checkMongo: (body: { uri: string; database: string }) =>
+    request<ConnectionCheckResult>('/admin/data-sources/check-mongo', { method: 'POST', body: JSON.stringify(body) }),
+  createMongoSource: (body: { name: string; connection: { uri: string; database: string }; collections: string[] }) =>
+    request<DataSourceInfo>('/admin/data-sources/mongodb', { method: 'POST', body: JSON.stringify(body) }),
   createDataSource: (body: { name: string; connection: PgConnectionInput; allowedTables: string[] }) =>
     request<DataSourceInfo>('/admin/data-sources', { method: 'POST', body: JSON.stringify(body) }),
   updateDataSource: (id: number, body: { name?: string; allowedTables?: string[]; notes?: string }) =>

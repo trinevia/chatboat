@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Database,
   FileSpreadsheet,
+  Leaf,
   Plus,
   Sparkles,
   Table2,
@@ -23,8 +24,8 @@ import { Dialog, useDialogs } from '@/components/ui/dialog';
 import { Input, Label } from '@/components/ui/input';
 
 const errMsg = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
-const KIND_LABEL = { sample: 'Sample data', postgres: 'PostgreSQL', upload: 'Uploaded files' } as const;
-const KIND_ICON = { sample: Sparkles, postgres: Database, upload: FileSpreadsheet } as const;
+const KIND_LABEL = { sample: 'Sample data', postgres: 'PostgreSQL', upload: 'Uploaded files', mongodb: 'MongoDB' } as const;
+const KIND_ICON = { sample: Sparkles, postgres: Database, upload: FileSpreadsheet, mongodb: Leaf } as const;
 
 function useInvalidate() {
   const qc = useQueryClient();
@@ -38,7 +39,18 @@ function useInvalidate() {
 
 // ---- Connect a PostgreSQL database -------------------------------------------------------
 
-function TablePicker({ tables, selected, onChange }: { tables: TableSummary[]; selected: Set<string>; onChange: (s: Set<string>) => void }) {
+function TablePicker({
+  tables,
+  selected,
+  onChange,
+  documents = false,
+}: {
+  tables: TableSummary[];
+  selected: Set<string>;
+  onChange: (s: Set<string>) => void;
+  /** MongoDB: say fields/docs instead of cols/rows. */
+  documents?: boolean;
+}) {
   const bySchema = useMemo(() => {
     const m = new Map<string, TableSummary[]>();
     for (const t of tables) m.set(t.schema, [...(m.get(t.schema) ?? []), t]);
@@ -77,7 +89,7 @@ function TablePicker({ tables, selected, onChange }: { tables: TableSummary[]; s
                 <input type='checkbox' checked={selected.has(key)} onChange={() => toggle(key)} className='accent-[var(--brand)]' />
                 <span className='flex-1 truncate'>{t.table}</span>
                 <span className='text-xs text-muted'>
-                  {t.columns.length} cols · ~{t.rows.toLocaleString()} rows
+                  {t.columns.length} {documents ? 'fields' : 'cols'} · ~{t.rows.toLocaleString()} {documents ? 'docs' : 'rows'}
                 </span>
               </label>
             );
@@ -88,9 +100,13 @@ function TablePicker({ tables, selected, onChange }: { tables: TableSummary[]; s
   );
 }
 
+type DbKind = 'postgres' | 'mongodb';
+
 function ConnectDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const invalidate = useInvalidate();
+  const [kind, setKind] = useState<DbKind>('postgres');
   const [conn, setConn] = useState<PgConnectionInput>({ host: '', port: 5432, database: '', user: '', password: '', ssl: true });
+  const [mongo, setMongo] = useState({ uri: '', database: '' });
   const [name, setName] = useState('');
   const [check, setCheck] = useState<ConnectionCheckResult | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -100,21 +116,29 @@ function ConnectDialog({ open, onClose }: { open: boolean; onClose: () => void }
       setSelected(new Set());
     }
   }, [open]);
+  const reset = () => setCheck(null);
+  const dbName = kind === 'postgres' ? conn.database : mongo.database;
+  const noun = kind === 'postgres' ? 'table' : 'collection';
 
   const test = useMutation({
-    mutationFn: () => api.checkConnection(conn),
+    mutationFn: () => (kind === 'postgres' ? api.checkConnection(conn) : api.checkMongo(mongo)),
     onSuccess: r => {
       setCheck(r);
       if (r.ok) {
         // Nothing is shared with the AI until the admin ticks it.
         setSelected(new Set());
-        if (!name) setName(conn.database);
+        if (!name) setName(dbName);
       }
     },
     onError: e => setCheck({ ok: false, error: errMsg(e, 'Could not test the connection.') }),
   });
   const save = useMutation({
-    mutationFn: () => api.createDataSource({ name: name.trim() || conn.database, connection: conn, allowedTables: [...selected] }),
+    mutationFn: () => {
+      const label = name.trim() || dbName;
+      if (kind === 'postgres') return api.createDataSource({ name: label, connection: conn, allowedTables: [...selected] });
+      // The picker keys are "database.collection"; Mongo sources store collection names.
+      return api.createMongoSource({ name: label, connection: mongo, collections: [...selected].map(k => k.slice(k.indexOf('.') + 1)) });
+    },
     onSuccess: () => {
       invalidate();
       toast.success('Database connected. Choose “Use for questions” to switch to it.');
@@ -123,7 +147,7 @@ function ConnectDialog({ open, onClose }: { open: boolean; onClose: () => void }
     onError: e => toast.error(errMsg(e, 'Could not save the connection.')),
   });
   const field = (key: keyof PgConnectionInput) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCheck(null);
+    reset();
     setConn(c => ({ ...c, [key]: key === 'port' ? Number(e.target.value) : e.target.value }));
   };
 
@@ -131,10 +155,32 @@ function ConnectDialog({ open, onClose }: { open: boolean; onClose: () => void }
     <Dialog
       open={open}
       onClose={onClose}
-      title='Connect a PostgreSQL database'
-      description='Use a login that can only read. Chatboat also forces every query to be read-only and stops it after 5 seconds.'
+      title='Connect a database'
+      description='Use a login that can only read. Chatboat also keeps every query read-only and stops it after 5 seconds.'
       className='w-[min(560px,calc(100vw-32px))]'
     >
+      <div className='mb-4 grid grid-cols-2 gap-1 rounded-lg bg-surface-2 p-1' role='radiogroup' aria-label='Database type'>
+        {(['postgres', 'mongodb'] as const).map(k => (
+          <button
+            key={k}
+            type='button'
+            role='radio'
+            aria-checked={kind === k}
+            onClick={() => {
+              setKind(k);
+              reset();
+            }}
+            className={cn(
+              'flex cursor-pointer items-center justify-center gap-1.5 rounded-md py-1.5 text-sm',
+              kind === k ? 'bg-surface font-medium shadow-sm' : 'text-muted hover:text-text'
+            )}
+          >
+            {k === 'postgres' ? <Database className='h-4 w-4' /> : <Leaf className='h-4 w-4' />}
+            {KIND_LABEL[k]}
+          </button>
+        ))}
+      </div>
+
       <form
         className='space-y-3'
         onSubmit={e => {
@@ -142,42 +188,80 @@ function ConnectDialog({ open, onClose }: { open: boolean; onClose: () => void }
           test.mutate();
         }}
       >
-        <div className='grid grid-cols-[1fr_96px] gap-3'>
-          <div className='space-y-1.5'>
-            <Label htmlFor='db-host'>Host</Label>
-            <Input id='db-host' value={conn.host} onChange={field('host')} required placeholder='db.company.internal' />
-          </div>
-          <div className='space-y-1.5'>
-            <Label htmlFor='db-port'>Port</Label>
-            <Input id='db-port' type='number' value={conn.port} onChange={field('port')} required />
-          </div>
-        </div>
-        <div className='grid grid-cols-3 gap-3'>
-          <div className='space-y-1.5'>
-            <Label htmlFor='db-name'>Database</Label>
-            <Input id='db-name' value={conn.database} onChange={field('database')} required />
-          </div>
-          <div className='space-y-1.5'>
-            <Label htmlFor='db-user'>User</Label>
-            <Input id='db-user' value={conn.user} onChange={field('user')} required autoComplete='off' />
-          </div>
-          <div className='space-y-1.5'>
-            <Label htmlFor='db-pass'>Password</Label>
-            <Input id='db-pass' type='password' value={conn.password} onChange={field('password')} autoComplete='new-password' />
-          </div>
-        </div>
-        <label className='flex items-center gap-2 text-sm'>
-          <input
-            type='checkbox'
-            checked={conn.ssl}
-            onChange={e => {
-              setCheck(null);
-              setConn(c => ({ ...c, ssl: e.target.checked }));
-            }}
-            className='accent-[var(--brand)]'
-          />
-          Require SSL (recommended unless the database is on the same private network)
-        </label>
+        {kind === 'postgres' ? (
+          <>
+            <div className='grid grid-cols-[1fr_96px] gap-3'>
+              <div className='space-y-1.5'>
+                <Label htmlFor='db-host'>Host</Label>
+                <Input id='db-host' value={conn.host} onChange={field('host')} required placeholder='db.company.internal' />
+              </div>
+              <div className='space-y-1.5'>
+                <Label htmlFor='db-port'>Port</Label>
+                <Input id='db-port' type='number' value={conn.port} onChange={field('port')} required />
+              </div>
+            </div>
+            <div className='grid grid-cols-3 gap-3'>
+              <div className='space-y-1.5'>
+                <Label htmlFor='db-name'>Database</Label>
+                <Input id='db-name' value={conn.database} onChange={field('database')} required />
+              </div>
+              <div className='space-y-1.5'>
+                <Label htmlFor='db-user'>User</Label>
+                <Input id='db-user' value={conn.user} onChange={field('user')} required autoComplete='off' />
+              </div>
+              <div className='space-y-1.5'>
+                <Label htmlFor='db-pass'>Password</Label>
+                <Input id='db-pass' type='password' value={conn.password} onChange={field('password')} autoComplete='new-password' />
+              </div>
+            </div>
+            <label className='flex items-center gap-2 text-sm'>
+              <input
+                type='checkbox'
+                checked={conn.ssl}
+                onChange={e => {
+                  reset();
+                  setConn(c => ({ ...c, ssl: e.target.checked }));
+                }}
+                className='accent-[var(--brand)]'
+              />
+              Require SSL (recommended unless the database is on the same private network)
+            </label>
+          </>
+        ) : (
+          <>
+            <div className='space-y-1.5'>
+              <Label htmlFor='mongo-uri'>Connection string</Label>
+              <Input
+                id='mongo-uri'
+                type='password'
+                value={mongo.uri}
+                onChange={e => {
+                  reset();
+                  setMongo(m => ({ ...m, uri: e.target.value }));
+                }}
+                required
+                autoComplete='off'
+                placeholder='mongodb+srv://reader:password@cluster0.example.mongodb.net/'
+              />
+              <p className='text-xs text-muted'>
+                Includes the password, so it’s hidden here and stored encrypted. Use a user with the built-in <code>read</code> role.
+              </p>
+            </div>
+            <div className='space-y-1.5'>
+              <Label htmlFor='mongo-db'>Database</Label>
+              <Input
+                id='mongo-db'
+                value={mongo.database}
+                onChange={e => {
+                  reset();
+                  setMongo(m => ({ ...m, database: e.target.value }));
+                }}
+                required
+                placeholder='shop'
+              />
+            </div>
+          </>
+        )}
         <Button type='submit' variant='secondary' disabled={test.isPending}>
           {test.isPending ? 'Testing…' : 'Test connection'}
         </Button>
@@ -191,25 +275,28 @@ function ConnectDialog({ open, onClose }: { open: boolean; onClose: () => void }
       {check?.ok && (
         <div className='mt-4 space-y-3'>
           <p className='flex items-center gap-2 text-sm text-good'>
-            <CheckCircle2 className='h-4 w-4' /> Connected. {check.tables?.length ?? 0} tables visible to this login.
+            <CheckCircle2 className='h-4 w-4' /> Connected. {check.tables?.length ?? 0} {noun}s visible to this login.
           </p>
           {(check.canWrite || check.isSuperuser) && (
             <p className='flex gap-2 rounded-lg border border-warn/40 bg-warn/10 p-3 text-sm'>
               <AlertTriangle className='mt-0.5 h-4 w-4 shrink-0 text-warn' />
               <span>
                 This login can <strong>change data</strong>
-                {check.isSuperuser ? ' (it is a superuser)' : ''}. Chatboat still runs every query read-only, but for safety
+                {check.isSuperuser ? ' (it is a superuser)' : ''}. Chatboat only ever runs read-only queries, but for safety
                 create a separate read-only user.
               </span>
             </p>
           )}
           <div className='space-y-1.5'>
-            <span className='text-sm font-medium'>Tables the AI may use</span>
-            <p className='text-xs text-muted'>Tick only what people should ask about. Leave out anything sensitive (salaries, passwords, personal data): the AI never sees unticked tables.</p>
+            <span className='text-sm font-medium'>{kind === 'postgres' ? 'Tables' : 'Collections'} the AI may use</span>
+            <p className='text-xs text-muted'>
+              Tick only what people should ask about. Leave out anything sensitive (salaries, passwords, personal data): the AI
+              never sees unticked {noun}s.
+            </p>
             {check.tables?.length ? (
-              <TablePicker tables={check.tables} selected={selected} onChange={setSelected} />
+              <TablePicker tables={check.tables} selected={selected} onChange={setSelected} documents={kind === 'mongodb'} />
             ) : (
-              <p className='text-sm text-muted'>This login can’t read any tables.</p>
+              <p className='text-sm text-muted'>This login can’t read any {noun}s.</p>
             )}
           </div>
           <div className='space-y-1.5'>
@@ -221,7 +308,7 @@ function ConnectDialog({ open, onClose }: { open: boolean; onClose: () => void }
               Cancel
             </Button>
             <Button onClick={() => save.mutate()} disabled={!selected.size || save.isPending}>
-              {save.isPending ? 'Saving…' : `Save with ${selected.size} ${selected.size === 1 ? 'table' : 'tables'}`}
+              {save.isPending ? 'Saving…' : `Save with ${selected.size} ${selected.size === 1 ? noun : `${noun}s`}`}
             </Button>
           </div>
         </div>
@@ -290,6 +377,8 @@ function SourceCard({ source }: { source: DataSourceInfo }) {
             {KIND_LABEL[source.kind]}
             {source.kind === 'postgres' &&
               ` · ${source.config.user}@${source.config.host}:${source.config.port}/${source.config.database} · ${source.allowedTables.length} tables allowed`}
+            {source.kind === 'mongodb' &&
+              ` · ${source.config.host}/${source.config.database} · ${source.allowedTables.length} collections allowed`}
           </div>
         </div>
         {!source.isActive && (

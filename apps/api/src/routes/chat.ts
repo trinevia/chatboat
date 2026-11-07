@@ -184,6 +184,8 @@ export const chatRoutes = new Hono<AppEnv>()
       messages: await convertToModelMessages(messages, { tools }),
       tools,
       stopWhen: stepCountIs(8),
+      // Free AI plans rate-limit bursts of calls; back off and retry rather than fail the answer.
+      maxRetries: 5,
       onEnd: ({ totalUsage }) =>
         usage.finish('completed', { input: totalUsage.inputTokens, output: totalUsage.outputTokens }),
       onError: () => usage.finish('failed'),
@@ -199,6 +201,9 @@ export const chatRoutes = new Hono<AppEnv>()
         generateMessageId: newMessageId,
         onError: error => {
           console.error('[chat] stream error', error);
+          if (/Too Many Requests|429|rate limit/i.test(String((error as Error)?.message ?? error))) {
+            return 'The AI service is busy right now (rate limit). Please try again in a minute.';
+          }
           return 'Sorry, something went wrong while answering. Please try again.';
         },
         onEnd: async ({ responseMessage }) => {

@@ -177,7 +177,7 @@ export function MessageView({
     const name = p.type.slice(5);
     const done = p.state === 'output-available';
 
-    if (name === 'runSql') return; // progress is shown by ProgressSteps
+    if (name === 'runSql' || name === 'runMongo') return; // progress is shown by ProgressSteps
     if (name === 'renderChart') {
       const out = p.output as { ok: true; chart: ChartSpec } | { ok: false } | undefined;
       if (!done) {

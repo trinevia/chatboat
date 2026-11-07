@@ -5,6 +5,8 @@ import { Hono } from 'hono';
 import { db, schema } from '@chatboat/db';
 import {
   createDataSourceInput,
+  createMongoSourceInput,
+  mongoConnectionInput,
   glossaryInput,
   pgConnectionInput,
   updateDataSourceInput,
@@ -15,6 +17,7 @@ import { requireAdmin, requireUser, type AppEnv } from '../context';
 import { encrypt } from '../data/crypto';
 import { checkConnection, forgetSchema, schemaDocFor, tablesFor } from '../data/introspect';
 import { forgetPool, poolFor, type DataSource, type PgConfig } from '../data/sources';
+import { checkMongo, hostOf } from '../data/mongo';
 import { dropUploadedTable, MAX_UPLOAD_BYTES, parseSpreadsheet, storeTable } from '../data/uploads';
 import { getSetting, setSetting } from '../settings';
 import type { GlossaryTerm } from '../ai/prompt';
@@ -102,6 +105,43 @@ export const dataSourceRoutes = new Hono<AppEnv>()
   .post('/admin/data-sources/check', zValidator('json', pgConnectionInput), async c => {
     const { password, ...cfg } = c.req.valid('json');
     return c.json(await checkConnection(cfg, password));
+  })
+
+  /** MongoDB: try a connection string; lists collections with their sampled fields. */
+  .post('/admin/data-sources/check-mongo', zValidator('json', mongoConnectionInput), async c => {
+    const { uri, database } = c.req.valid('json');
+    const check = await checkMongo(uri, database);
+    // Same shape as the PostgreSQL check so the UI can share the table picker.
+    return c.json({
+      ok: check.ok,
+      error: check.error,
+      canWrite: check.canWrite,
+      tables: check.collections?.map(col => ({
+        schema: database,
+        table: col.name,
+        rows: col.documents,
+        columns: Object.entries(col.fields).map(([name, types]) => ({ name, type: types.join('|') })),
+      })),
+    });
+  })
+
+  .post('/admin/data-sources/mongodb', zValidator('json', createMongoSourceInput), async c => {
+    const { name, connection, collections } = c.req.valid('json');
+    const check = await checkMongo(connection.uri, connection.database);
+    if (!check.ok) return c.json({ error: check.error }, 400);
+    const [row] = await db
+      .insert(dataSource)
+      .values({
+        name,
+        kind: 'mongodb',
+        // The full connection string holds the password, so only its host is stored in the clear.
+        config: { host: hostOf(connection.uri), database: connection.database },
+        secret: encrypt(connection.uri),
+        allowedTables: collections,
+        lastCheckedAt: new Date(),
+      })
+      .returning();
+    return c.json(info(row), 201);
   })
 
   .post('/admin/data-sources', zValidator('json', createDataSourceInput), async c => {

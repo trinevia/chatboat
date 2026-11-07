@@ -4,6 +4,7 @@ import { db, schema } from '@chatboat/db';
 import type { Row } from '@chatboat/shared';
 import { guardSql, limitSql, type GuardOptions } from '../ai/sql-guard';
 import { decrypt } from './crypto';
+import { forgetMongoClient, runMongo } from './mongo';
 
 const { dataSource } = schema;
 export type DataSource = typeof dataSource.$inferSelect;
@@ -117,6 +118,8 @@ export async function guardOptionsFor(source: DataSource): Promise<GuardOptions>
 
 /** Validate and run one AI-written SELECT against a source, read-only, with a row limit. */
 export async function runOnSource(source: DataSource, rawSql: string) {
+  // MongoDB sources store/receive a JSON aggregation instead of SQL.
+  if (source.kind === 'mongodb') return runMongo(source, rawSql);
   const sql = guardSql(rawSql, await guardOptionsFor(source));
   const pool = poolFor(source);
   const searchPath = defaultSchemaOf(source) ?? 'biz';
@@ -136,6 +139,7 @@ export async function runOnSample(rawSql: string) {
 }
 
 export function forgetPool(sourceId: number) {
+  forgetMongoClient(sourceId);
   const cached = externalPools.get(sourceId);
   externalPools.delete(sourceId);
   void cached?.sql.end({ timeout: 5 });

@@ -230,7 +230,7 @@ export interface PendingInvite {
 }
 
 // ---- Data sources ------------------------------------------------------------------
-export const DATA_SOURCE_KINDS = ['sample', 'postgres', 'upload'] as const;
+export const DATA_SOURCE_KINDS = ['sample', 'postgres', 'upload', 'mongodb'] as const;
 export type DataSourceKind = (typeof DATA_SOURCE_KINDS)[number];
 
 export const pgConnectionInput = z.object({
@@ -242,6 +242,22 @@ export const pgConnectionInput = z.object({
   ssl: z.boolean().default(false),
 });
 export type PgConnectionInput = z.infer<typeof pgConnectionInput>;
+
+export const mongoConnectionInput = z.object({
+  uri: z
+    .string()
+    .trim()
+    .regex(/^mongodb(\+srv)?:\/\//, 'Use a connection string starting with mongodb:// or mongodb+srv://')
+    .max(2000),
+  database: z.string().trim().min(1).max(64),
+});
+export type MongoConnectionInput = z.infer<typeof mongoConnectionInput>;
+
+export const createMongoSourceInput = z.object({
+  name: z.string().trim().min(1).max(80),
+  connection: mongoConnectionInput,
+  collections: z.array(z.string().min(1).max(120)).min(1, 'Pick at least one collection').max(500),
+});
 
 export const createDataSourceInput = z.object({
   name: z.string().trim().min(1).max(80),
@@ -326,7 +342,7 @@ export interface SuggestedQuestions {
   roleBased: string[];
   role: string;
   /** Which kind of data questions are answered from (changes home-page wording). */
-  sourceKind: 'sample' | 'postgres' | 'upload';
+  sourceKind: DataSourceKind;
   sourceName: string;
 }
 

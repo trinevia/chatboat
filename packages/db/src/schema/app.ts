@@ -98,12 +98,12 @@ export const dataSource = app.table(
   {
     id: serial('id').primaryKey(),
     name: text('name').notNull(),
-    kind: text('kind', { enum: ['sample', 'postgres', 'upload'] }).notNull(),
+    kind: text('kind', { enum: ['sample', 'postgres', 'upload', 'mongodb'] }).notNull(),
     /** Non-secret connection details: host, port, database, user, ssl. */
     config: jsonb('config').notNull().default({}),
     /** Encrypted password (AES-256-GCM with DATA_ENCRYPTION_KEY). */
     secret: text('secret'),
-    /** Tables the AI may query, as "schema.table". */
+    /** Tables the AI may query, as "schema.table" (MongoDB: collection names). */
     allowedTables: text('allowed_tables').array().notNull().default([]),
     /** Admin's notes for the AI about this data (meanings of columns, gotchas). */
     notes: text('notes').notNull().default(''),

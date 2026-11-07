@@ -1,6 +1,7 @@
 import type postgres from 'postgres';
 import { BIZ_SCHEMA_DOC } from '@chatboat/db/biz-schema-doc';
 import { connectExternal, type DataSource, type PgConfig } from './sources';
+import { describeCollections, mongoCollectionsFor } from './mongo';
 
 export interface TableInfo {
   schema: string;
@@ -125,6 +126,18 @@ export async function tablesFor(source: DataSource, pool: () => postgres.Sql): P
   const stamp = source.updatedAt.getTime();
   const hit = docCache.get(source.id);
   if (hit?.stamp === stamp) return hit.tables;
+  if (source.kind === 'mongodb') {
+    const infos = await mongoCollectionsFor(source);
+    const tables = infos.map(c => ({
+      schema: (source.config as { database: string }).database,
+      table: c.name,
+      rows: c.documents,
+      columns: Object.entries(c.fields).map(([name, types]) => ({ name, type: types.join('|') })),
+      references: {},
+    }));
+    docCache.set(source.id, { stamp, doc: describeCollections(infos), tables });
+    return tables;
+  }
   let tables: TableInfo[];
   if (source.kind === 'upload') tables = await listTables(pool(), ['uploads']);
   else {

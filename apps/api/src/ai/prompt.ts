@@ -22,6 +22,15 @@ Rules:
 - Relative dates ("this year", "last month") are relative to CURRENT_DATE.
 - The current month is still in progress, so its totals are partial. Don't describe it as a drop or decline; say it is month-to-date, or leave it out of trend comparisons. If you leave it out, filter it in SQL (date < date_trunc('month', CURRENT_DATE)) so the chart matches what you say.`;
 
+/** MongoDB sources: the same steps, written for aggregation pipelines. */
+const HOW_TO_ANSWER_MONGO = HOW_TO_ANSWER.replace(
+  /1\. Call runSql[\s\S]*?\n2\. If runSql/,
+  `1. Call runMongo with a collection and an aggregation pipeline (JSON array of stages). Use $match to filter, $unwind for arrays, $group to aggregate ($sum, $avg, $count), then $project to return few flat, well-named fields, e.g. { "_id": 0, "city": "$_id", "total_sales": 1 }. For monthly buckets use { "$dateToString": { "format": "%Y-%m", "date": "$createdAt" } } and $sort by it. Round money with { "$round": ["$x", 2] }. Dates in $match must be written as { "$gte": { "$date": "2025-01-01T00:00:00Z" } }.
+2. If runMongo`
+)
+  .replace("filter it in SQL (date < date_trunc('month', CURRENT_DATE))", 'filter it out in $match')
+  .replace('Every figure must come from a runSql result.', 'Every figure must come from a runMongo result.');
+
 /** Business definitions that only make sense for the built-in sample tables. */
 const SAMPLE_RULES = `- "Sales" or "revenue" means SUM(total_amount) of invoices whose status is not 'void'.
 - Always qualify tables as biz.<table>.`;
@@ -32,6 +41,9 @@ function sourceIntro(source: DataSource) {
   }
   if (source.kind === 'upload') {
     return 'Business users ask questions about spreadsheets their company uploaded (now database tables in the "uploads" schema), and you answer with charts.';
+  }
+  if (source.kind === 'mongodb') {
+    return "Business users ask questions about their company's MongoDB database, and you answer with charts.";
   }
   return "Business users ask questions about their company's own database, and you answer with charts.";
 }
@@ -49,12 +61,16 @@ export async function buildSystemPrompt(source: DataSource): Promise<string> {
   const terms = (glossary ?? []).filter(g => g.term.trim() && g.definition.trim());
   return [
     `You are Chatboat, a data analyst assistant. ${sourceIntro(source)}`,
-    source.kind === 'sample' ? doc : `Tables you can query (PostgreSQL):\n${doc || '(no tables yet)'}`,
+    source.kind === 'sample'
+      ? doc
+      : source.kind === 'mongodb'
+        ? `Collections you can query (MongoDB; fields from sampled documents, a.b = nested field, items[].x = field inside an array):\n${doc || '(no collections)'}`
+        : `Tables you can query (PostgreSQL):\n${doc || '(no tables yet)'}`,
     source.notes.trim() ? `Notes from the company about this data:\n${source.notes.trim()}` : '',
     terms.length
       ? `Company definitions. Always follow these when a question uses the term:\n${terms.map(t => `- ${t.term}: ${t.definition}`).join('\n')}`
       : '',
-    source.kind === 'sample' ? `${HOW_TO_ANSWER}\n${SAMPLE_RULES}` : HOW_TO_ANSWER,
+    source.kind === 'sample' ? `${HOW_TO_ANSWER}\n${SAMPLE_RULES}` : source.kind === 'mongodb' ? HOW_TO_ANSWER_MONGO : HOW_TO_ANSWER,
   ]
     .filter(Boolean)
     .join('\n\n');

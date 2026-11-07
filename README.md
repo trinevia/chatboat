@@ -185,6 +185,7 @@ Admins choose where answers come from in **Admin → Data sources**. One source 
 
 - **Sample sales data**: the built-in demo tables (`biz` schema).
 - **PostgreSQL**: enter host, port, database and a login. "Test connection" lists the tables that login can read and warns if it can write. Admins then tick the tables the AI may use (nothing is ticked by default). Passwords are encrypted with `DATA_ENCRYPTION_KEY` (AES-256-GCM).
+- **MongoDB**: paste a connection string (stored encrypted) and the database name. Chatboat samples documents to learn each collection's fields, including nested ones (`customer.city`, `items[].qty`), and the admin ticks the collections the AI may use. The AI writes aggregation pipelines instead of SQL; only read-only stages are accepted (no `$out`, `$merge`, `$function` or `$where`), lookups must stay inside the allowed collections, and each query is capped at 5 seconds and 1,000 results. Use a user with the built-in `read` role.
 - **CSV / Excel upload**: each sheet becomes a table in the `uploads` schema, with column types detected automatically. Uploading a file with the same name replaces its table.
 
 Every query the AI writes is checked against that source's allowed tables, runs in a read-only transaction with a 5-second timeout and a 1,000-row limit, and with `search_path` pinned so unqualified table names can't reach other schemas.
