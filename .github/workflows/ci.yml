@@ -60,5 +60,7 @@ jobs:
           if psql -h localhost -U analyst_ro -d chatboat -c "select 1 from app.user" 2>/dev/null; then
             echo "analyst_ro can read app schema"; exit 1
           fi
+      - name: Build API (tsup bundle used by the Docker image)
+        run: pnpm --filter @chatboat/api build
       - name: Build web
         run: pnpm --filter @chatboat/web build
