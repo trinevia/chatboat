@@ -33,7 +33,7 @@ export function Menu({
         <div
           role='menu'
           className={cn(
-            'absolute z-30 mt-1 min-w-44 rounded-lg border border-border bg-surface p-1 shadow-lg',
+            'absolute z-30 mt-1 w-max min-w-44 rounded-lg border border-border bg-surface p-1 shadow-lg',
             align === 'right' ? 'right-0' : 'left-0'
           )}
         >
@@ -49,7 +49,7 @@ export function MenuItem({ className, ...props }: React.ButtonHTMLAttributes<HTM
     <button
       role='menuitem'
       className={cn(
-        'flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm text-text hover:bg-surface-2 cursor-pointer',
+        'flex w-full items-center gap-2 whitespace-nowrap rounded-md px-2.5 py-1.5 text-left text-sm text-text hover:bg-surface-2 cursor-pointer [&>svg]:shrink-0',
         className
       )}
       {...props}

@@ -39,10 +39,12 @@ export const api = {
     request(`/chats/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   deleteChat: (id: string) => request<void>(`/chats/${id}`, { method: 'DELETE' }),
   suggestions: () => request<SuggestedQuestions>('/suggestions'),
-  feedback: (messageId: string, rating: 'up' | 'down') =>
-    request<void>('/feedback', { method: 'POST', body: JSON.stringify({ messageId, rating }) }),
+  feedback: (body: { messageId: string; rating: 'up' | 'down'; reasons?: string[]; comment?: string }) =>
+    request<void>('/feedback', { method: 'POST', body: JSON.stringify(body) }),
   listDashboards: () => request<DashboardSummary[]>('/dashboards'),
   getDashboard: (id: number) => request<DashboardDetail>(`/dashboards/${id}`),
+  renameDashboard: (id: number, name: string) =>
+    request(`/dashboards/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
   deleteDashboard: (id: number) => request<void>(`/dashboards/${id}`, { method: 'DELETE' }),
   pinWidget: (body: { dashboardId?: number; dashboardName?: string; chatId?: string; chart: ChartSpec }) =>
     request<{ dashboardId: number }>('/dashboards/widgets', { method: 'POST', body: JSON.stringify(body) }),

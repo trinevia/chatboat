@@ -10,6 +10,7 @@ import type { ChatListItem } from '@chatboat/shared';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Menu, MenuItem } from '@/components/ui/menu';
+import { useDialogs } from '@/components/ui/dialog';
 
 function groupByDate(chats: ChatListItem[]) {
   const now = new Date();
@@ -32,6 +33,7 @@ export function ChatHistory({ onNavigate }: { onNavigate?: () => void }) {
   const params = useParams<{ id?: string }>();
   const router = useRouter();
   const qc = useQueryClient();
+  const dialogs = useDialogs();
 
   const update = useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: { title?: string; isSaved?: boolean } }) => api.updateChat(id, patch),
@@ -95,9 +97,9 @@ export function ChatHistory({ onNavigate }: { onNavigate?: () => void }) {
                     {close => (
                       <>
                         <MenuItem
-                          onClick={() => {
+                          onClick={async () => {
                             close();
-                            const title = window.prompt('Rename chat', c.title)?.trim();
+                            const title = await dialogs.prompt({ title: 'Rename chat', label: 'Chat name', defaultValue: c.title });
                             if (title && title !== c.title) update.mutate({ id: c.id, patch: { title } });
                           }}
                         >
@@ -108,9 +110,15 @@ export function ChatHistory({ onNavigate }: { onNavigate?: () => void }) {
                         </MenuItem>
                         <MenuItem
                           className='text-danger'
-                          onClick={() => {
+                          onClick={async () => {
                             close();
-                            if (window.confirm(`Delete "${c.title}"? This cannot be undone.`)) remove.mutate(c.id);
+                            const ok = await dialogs.confirm({
+                              title: 'Delete chat?',
+                              description: `"${c.title}" and its answers will be deleted. This cannot be undone.`,
+                              confirmLabel: 'Delete',
+                              danger: true,
+                            });
+                            if (ok) remove.mutate(c.id);
                           }}
                         >
                           <Trash2 className='h-4 w-4' /> Delete

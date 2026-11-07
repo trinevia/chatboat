@@ -68,10 +68,10 @@ export const miscRoutes = new Hono<AppEnv>()
     if (!owned) return c.json({ error: 'Not found' }, 404);
     await db
       .insert(schema.feedback)
-      .values({ ...input, userId })
+      .values({ ...input, reasons: input.reasons ?? [], userId })
       .onConflictDoUpdate({
         target: [schema.feedback.messageId, schema.feedback.userId],
-        set: { rating: input.rating, comment: input.comment ?? null },
+        set: { rating: input.rating, reasons: input.reasons ?? [], comment: input.comment ?? null },
       });
     return c.body(null, 204);
   });

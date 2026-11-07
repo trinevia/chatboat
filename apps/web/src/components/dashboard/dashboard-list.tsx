@@ -2,12 +2,15 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { LayoutDashboard, Trash2 } from 'lucide-react';
+import { LayoutDashboard, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { useDialogs } from '@/components/ui/dialog';
+import { Menu, MenuItem } from '@/components/ui/menu';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 
 export function DashboardList() {
   const qc = useQueryClient();
+  const dialogs = useDialogs();
   const { data, isLoading } = useQuery({ queryKey: ['dashboards'], queryFn: api.listDashboards });
   const remove = useMutation({
     mutationFn: api.deleteDashboard,
@@ -15,6 +18,14 @@ export function DashboardList() {
       qc.invalidateQueries({ queryKey: ['dashboards'] });
       toast.success('Dashboard deleted');
     },
+  });
+  const rename = useMutation({
+    mutationFn: ({ id, name }: { id: number; name: string }) => api.renameDashboard(id, name),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['dashboards'] });
+      qc.invalidateQueries({ queryKey: ['dashboard', id] });
+    },
+    onError: () => toast.error('Could not rename the dashboard.'),
   });
 
   return (
@@ -42,15 +53,48 @@ export function DashboardList() {
                 {d.widgetCount} {d.widgetCount === 1 ? 'chart' : 'charts'}
               </div>
             </Link>
-            <button
-              aria-label={`Delete ${d.name}`}
-              onClick={() =>
-                window.confirm(`Delete dashboard "${d.name}"? This cannot be undone.`) && remove.mutate(d.id)
-              }
-              className='absolute right-2 top-2 cursor-pointer rounded p-1.5 text-muted opacity-0 hover:text-danger focus:opacity-100 group-hover:opacity-100'
-            >
-              <Trash2 className='h-4 w-4' />
-            </button>
+            <div className='absolute right-2 top-2'>
+              <Menu
+                trigger={(open, toggle) => (
+                  <button
+                    aria-label={`Actions for ${d.name}`}
+                    onClick={toggle}
+                    className={`cursor-pointer rounded p-1.5 text-muted hover:text-text focus:opacity-100 ${open ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                  >
+                    <MoreHorizontal className='h-4 w-4' />
+                  </button>
+                )}
+              >
+                {close => (
+                  <>
+                    <MenuItem
+                      onClick={async () => {
+                        close();
+                        const name = await dialogs.prompt({ title: 'Rename dashboard', label: 'Name', defaultValue: d.name, maxLength: 80 });
+                        if (name && name !== d.name) rename.mutate({ id: d.id, name });
+                      }}
+                    >
+                      <Pencil className='h-4 w-4' /> Rename
+                    </MenuItem>
+                    <MenuItem
+                      className='text-danger'
+                      onClick={async () => {
+                        close();
+                        const ok = await dialogs.confirm({
+                          title: 'Delete dashboard?',
+                          description: `"${d.name}" and its ${d.widgetCount} ${d.widgetCount === 1 ? 'chart' : 'charts'} will be deleted. Your chats are kept.`,
+                          confirmLabel: 'Delete',
+                          danger: true,
+                        });
+                        if (ok) remove.mutate(d.id);
+                      }}
+                    >
+                      <Trash2 className='h-4 w-4' /> Delete
+                    </MenuItem>
+                  </>
+                )}
+              </Menu>
+            </div>
           </div>
         ))}
       </div>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Suspense, useState } from 'react';
-import { BarChart3, LayoutDashboard, LogOut, Menu as MenuIcon, MessageSquarePlus, X } from 'lucide-react';
+import { BarChart3, LayoutDashboard, LogOut, Menu as MenuIcon, MessageSquarePlus, Settings, X } from 'lucide-react';
 import { signOut, useSession } from '@/lib/auth-client';
 import { cn } from '@/lib/utils';
 import { ChatHistory } from '@/components/chat/chat-history';
@@ -39,10 +39,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         Chatboat
       </Link>
       {/* URL hooks (usePathname/useParams) must sit inside Suspense with Cache Components. */}
-      <Suspense fallback={<div className='h-[76px]' />}>
+      <Suspense fallback={<div className='h-[114px]' />}>
         <nav className='space-y-0.5'>
           <NavLink href='/' icon={MessageSquarePlus}>New question</NavLink>
           <NavLink href='/dashboards' icon={LayoutDashboard}>Dashboards</NavLink>
+          <NavLink href='/settings' icon={Settings}>Settings</NavLink>
         </nav>
       </Suspense>
       <Suspense fallback={<div className='flex-1' />}>

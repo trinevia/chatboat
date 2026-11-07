@@ -1,31 +1,21 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import type { ChartSpec } from '@chatboat/shared';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
 import { Input, Label } from '@/components/ui/input';
 
 export function PinDialog({ open, onClose, spec, chatId }: { open: boolean; onClose: () => void; spec: ChartSpec; chatId?: string }) {
-  const ref = useRef<HTMLDialogElement>(null);
   const qc = useQueryClient();
   const { data: dashboards } = useQuery({ queryKey: ['dashboards'], queryFn: api.listDashboards, enabled: open });
   const [choice, setChoice] = useState<string>('new');
   const [name, setName] = useState('');
 
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (open && !d.open) {
-      d.showModal();
-      // showModal focuses the first control; put the cursor where the user types.
-      d.querySelector<HTMLInputElement>('#dash-name')?.focus();
-    }
-    if (!open && d.open) d.close();
-  }, [open]);
   useEffect(() => {
     if (dashboards?.length && choice === 'new' && !name) setChoice(String(dashboards[0].id));
   }, [dashboards]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -49,15 +39,9 @@ export function PinDialog({ open, onClose, spec, chatId }: { open: boolean; onCl
   });
 
   return (
-    <dialog
-      ref={ref}
-      onClose={onClose}
-      className='m-auto w-[min(420px,calc(100vw-32px))] rounded-xl border border-border bg-surface p-5 text-text backdrop:bg-black/40'
-    >
-      <h2 className='text-base font-semibold'>Add to dashboard</h2>
-      <p className='mt-1 text-sm text-muted'>“{spec.title}”</p>
+    <Dialog open={open} onClose={onClose} title='Add to dashboard' description={`“${spec.title}”`} initialFocus='#dash-name'>
       <form
-        className='mt-4 space-y-3'
+        className='space-y-3'
         onSubmit={e => {
           e.preventDefault();
           pin.mutate();
@@ -89,6 +73,6 @@ export function PinDialog({ open, onClose, spec, chatId }: { open: boolean; onCl
           </div>
         </div>
       </form>
-    </dialog>
+    </Dialog>
   );
 }

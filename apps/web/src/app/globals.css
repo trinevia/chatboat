@@ -20,8 +20,9 @@
   --chart-6: #8b5cf6;
 }
 
+/* Dark: follows the OS unless the user picked a theme in Settings (data-theme on <html>). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0e0f13;
     --surface: #16181e;
     --surface-2: #1d2028;
@@ -40,6 +41,24 @@
     --chart-6: #a78bfa;
   }
 }
+:root[data-theme="dark"] {
+    --bg: #0e0f13;
+    --surface: #16181e;
+    --surface-2: #1d2028;
+    --border: #2a2e38;
+    --text: #eceef3;
+    --text-muted: #9aa1ae;
+    --brand: #818cf8;
+    --brand-fg: #0e0f13;
+    --brand-soft: #1e1f3a;
+    --danger: #f87171;
+    --chart-1: #818cf8;
+    --chart-2: #38bdf8;
+    --chart-3: #fbbf24;
+    --chart-4: #34d399;
+    --chart-5: #f472b6;
+    --chart-6: #a78bfa;
+  }
 
 @theme inline {
   --color-bg: var(--bg);
@@ -54,6 +73,10 @@
   --color-danger: var(--danger);
   --font-sans: var(--font-inter);
 }
+
+html { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; } }
 
 body {
   background: var(--bg);

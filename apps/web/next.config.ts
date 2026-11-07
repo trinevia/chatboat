@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   transpilePackages: ['@chatboat/shared'],
+  experimental: {
+    // Signed-in pages render on the client from the user's session, so there's no static
+    // shell to check. Only validate segments that explicitly export `instant`.
+    instantInsights: { validationLevel: 'manual-warning' },
+  },
   // The browser talks to /api on the same origin, so auth cookies just work.
   async rewrites() {
     return [{ source: '/api/:path*', destination: `${API_URL}/api/:path*` }];

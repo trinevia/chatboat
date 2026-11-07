@@ -11,7 +11,7 @@ The app is a full-stack rebuild of the `chatapp` frontend (same subject: sales, 
 | Monorepo | pnpm workspaces + Turborepo |
 | Frontend (`apps/web`) | Next.js 16 (App Router, Cache Components), React 19, Tailwind CSS v4, TanStack Query, AI SDK UI (`useChat`), Recharts |
 | Backend (`apps/api`) | Hono on Node, Vercel AI SDK v7 (`streamText` + tools), Better Auth |
-| AI model | Provider-agnostic: Anthropic Claude by default (`claude-opus-5-5`), OpenAI or Google via env |
+| AI model | Provider-agnostic: Anthropic Claude by default (`claude-opus-5-5`); OpenAI, Google or NVIDIA NIM via env |
 | Database (`packages/db`) | PostgreSQL 17 + Drizzle ORM, seeded demo business data |
 | Shared (`packages/shared`) | Zod schemas for chart specs and API payloads |
 
@@ -65,10 +65,12 @@ Open http://localhost:3000, create an account, and pick a role. The role decides
 ### Switching AI provider
 
 ```env
-AI_PROVIDER=openai        # anthropic | openai | google
+AI_PROVIDER=openai        # anthropic | openai | google | nvidia
 AI_MODEL=gpt-5            # optional; each provider has a default
 OPENAI_API_KEY=...
 ```
+
+For NVIDIA NIM (build.nvidia.com), set `AI_PROVIDER=nvidia` and `NVIDIA_API_KEY`. The default model is `nvidia/nemotron-3-ultra-550b-a55b`; the model must support tool calling.
 
 ## Scripts
 

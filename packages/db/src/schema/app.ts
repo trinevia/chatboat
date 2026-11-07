@@ -110,6 +110,8 @@ export const feedback = app.table(
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
     rating: text('rating', { enum: ['up', 'down'] }).notNull(),
+    /** Reason codes picked on a thumbs-down, see FEEDBACK_REASONS in @chatboat/shared. */
+    reasons: text('reasons').array().notNull().default([]),
     comment: text('comment'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },

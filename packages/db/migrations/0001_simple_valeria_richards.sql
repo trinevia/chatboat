@@ -1,0 +1,1 @@
+ALTER TABLE "app"."feedback" ADD COLUMN "reasons" text[] DEFAULT '{}' NOT NULL;

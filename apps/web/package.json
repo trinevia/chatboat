@@ -10,20 +10,21 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/react": "^4.0.168",
+    "@chatboat/shared": "workspace:*",
+    "@tanstack/react-query": "^5.107.1",
+    "ai": "^7.0.164",
+    "better-auth": "^1.7.18",
+    "clsx": "^2.1.1",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^1.70.0",
     "next": "16.4.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "@ai-sdk/react": "^4.0.168",
-    "ai": "^7.0.164",
-    "@chatboat/shared": "workspace:*",
-    "@tanstack/react-query": "^5.107.1",
-    "better-auth": "^1.7.18",
-    "clsx": "^2.1.1",
-    "lucide-react": "^1.70.0",
     "recharts": "^3.10.1",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^3.3.1",
-    "html-to-image": "^1.11.13"
+    "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",

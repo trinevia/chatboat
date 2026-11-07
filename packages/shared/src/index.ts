@@ -49,6 +49,11 @@ export const renderChartInput = z.object({
   summary: z
     .string()
     .describe('One or two sentences explaining the key takeaway from the numbers.'),
+  explanation: z
+    .string()
+    .describe(
+      'Plain-English description of how the numbers were calculated, for a non-technical reader: the metric definition, filters and date range. E.g. "Sum of invoice totals, excluding void invoices, for customers in California, Nov 2025 to Oct 2026, grouped by month."'
+    ),
 });
 export type RenderChartInput = z.infer<typeof renderChartInput>;
 
@@ -60,6 +65,7 @@ export const chartSpec = z.object({
   yKeys: z.array(z.string()),
   seriesKey: z.string().optional(),
   summary: z.string().optional(),
+  explanation: z.string().optional(),
   columns: z.array(z.string()),
   rows: z.array(rowSchema),
   sql: z.string().optional(),
@@ -82,9 +88,23 @@ export const chatPatch = z.object({
 });
 export type ChatPatch = z.infer<typeof chatPatch>;
 
+export const FEEDBACK_REASONS = {
+  wrong_numbers: 'Numbers look wrong',
+  misunderstood: 'Misunderstood my question',
+  wrong_chart: 'Wrong chart type',
+  incomplete: 'Missing data or details',
+  unclear: 'Hard to understand',
+  slow: 'Too slow',
+} as const;
+export type FeedbackReason = keyof typeof FEEDBACK_REASONS;
+
 export const feedbackInput = z.object({
   messageId: z.string(),
   rating: z.enum(['up', 'down']),
+  reasons: z
+    .array(z.enum(Object.keys(FEEDBACK_REASONS) as [FeedbackReason, ...FeedbackReason[]]))
+    .max(6)
+    .optional(),
   comment: z.string().max(1000).optional(),
 });
 

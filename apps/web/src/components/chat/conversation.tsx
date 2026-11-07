@@ -5,10 +5,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DefaultChatTransport, type UIMessage } from 'ai';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
-import { AlertCircle, BarChart3 } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { AskBox } from './ask-box';
 import { MessageView } from './message-view';
+import { ProgressSteps } from './progress-steps';
 
 export function ConversationLoader({ chatId }: { chatId: string }) {
   const { data, isLoading, error } = useQuery({
@@ -82,18 +83,7 @@ function Conversation({ chatId, title, initialMessages }: { chatId: string; titl
               onFollowUp={ask}
             />
           ))}
-          {status === 'submitted' && (
-            <div className='flex items-center gap-3' aria-live='polite'>
-              <span className='grid h-7 w-7 place-items-center rounded-lg bg-brand text-brand-fg'>
-                <BarChart3 className='h-4 w-4' />
-              </span>
-              <span className='flex gap-1' aria-label='Thinking'>
-                {[0, 1, 2].map(i => (
-                  <span key={i} className='typing-dot h-1.5 w-1.5 rounded-full bg-muted' style={{ animationDelay: `${i * 0.15}s` }} />
-                ))}
-              </span>
-            </div>
-          )}
+          {busy && <ProgressSteps message={messages[messages.length - 1]} />}
           {error && (
             <div className='flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm text-danger'>
               <AlertCircle className='mt-0.5 h-4 w-4 shrink-0' />

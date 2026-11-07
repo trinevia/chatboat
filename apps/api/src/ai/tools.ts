@@ -69,6 +69,7 @@ export function createTools() {
             yKeys: input.yKeys,
             seriesKey: input.seriesKey,
             summary: input.summary,
+            explanation: input.explanation,
             columns: result.columns,
             rows: result.rows,
             sql: result.sql,
