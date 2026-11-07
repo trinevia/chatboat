@@ -210,6 +210,21 @@ export const insight = app.table('insight', {
   computedAt: timestamp('computed_at').notNull().defaultNow(),
 });
 
+/** One row per AI request: who, which model, tokens and outcome. Used for limits and cost. */
+export const aiUsage = app.table('ai_usage', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  chatId: text('chat_id'),
+  model: text('model').notNull(),
+  status: text('status', { enum: ['started', 'completed', 'failed'] }).notNull(),
+  inputTokens: integer('input_tokens').notNull().default(0),
+  outputTokens: integer('output_tokens').notNull().default(0),
+  durationMs: integer('duration_ms'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 export const chatRelations = relations(chat, ({ many, one }) => ({
   messages: many(message),
   group: one(chatGroup, { fields: [chat.groupId], references: [chatGroup.id] }),

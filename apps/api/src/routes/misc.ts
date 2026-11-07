@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 import { db, schema } from '@chatboat/db';
 import { feedbackInput, type Role, type SuggestedQuestions } from '@chatboat/shared';
 import { requireUser, type AppEnv } from '../context';
+import { usageSummary } from '../usage';
 
 const ROLE_QUESTIONS: Record<Role, string[]> = {
   sales: [
@@ -55,6 +56,8 @@ export const miscRoutes = new Hono<AppEnv>()
     const body: SuggestedQuestions = { recent, roleBased: ROLE_QUESTIONS[role], role };
     return c.json(body);
   })
+
+  .get('/usage', async c => c.json(await usageSummary(c.get('user').id)))
 
   .post('/feedback', zValidator('json', feedbackInput), async c => {
     const input = c.req.valid('json');

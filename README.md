@@ -108,8 +108,37 @@ The API runs a one-minute tick that claims due subscriptions with `SELECT … FO
 
 Locally, `docker compose up -d` also starts **Mailpit**, a fake inbox: every digest lands at http://localhost:8025 and nothing reaches real people. In production, set `SMTP_URL` to your provider (Resend, SES, Postmark, …) and `MAIL_FROM` to a verified sender. Digests go to the account's own email address.
 
+## Usage limits and cost
+
+Every AI request is recorded in `app.ai_usage` (model, tokens, duration, outcome). Each user can ask `DAILY_QUESTION_LIMIT` questions per UTC day (default 100); after that the chat explains the limit instead of calling the model. Settings → Usage shows today's count, this month's questions, tokens, average answer time and an estimated cost when `AI_PRICE_INPUT_PER_M` / `AI_PRICE_OUTPUT_PER_M` are set.
+
+## Accuracy eval
+
+`apps/api/evals` holds 25 business questions with explicit periods, each with a reference SQL answer. The runner asks the model each question with the app's real prompt and tools, then checks that the numbers it returns match the reference (names and row order are ignored; counts must match exactly, amounts within 0.5%).
+
+```bash
+pnpm --filter @chatboat/api eval -- --limit 5
+```
+
+```bash
+pnpm --filter @chatboat/api eval -- --models nvidia:nvidia/nemotron-3-ultra-550b-a55b,nvidia:nvidia/nemotron-3.5-lightning-30b-a3b
+```
+
+Each run calls the model once per question, so it uses API credits. Reports are written to `apps/api/evals/results/` (git-ignored).
+
+## CI
+
+`.github/workflows/ci.yml` runs on every push and pull request: install, typecheck, unit tests, migrations and seed on an empty Postgres, a check that the `analyst_ro` role can't write or read the `app` schema, and a production build of the web app.
+
+## Docker
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+This builds `apps/api/Dockerfile` and `apps/web/Dockerfile` (a Next.js standalone server), runs migrations once, then starts Postgres, the API and the web app on port 3000. Put `PUBLIC_URL`, `POSTGRES_PASSWORD`, `ANALYST_PASSWORD`, `BETTER_AUTH_SECRET`, the AI provider settings and `SMTP_URL` in `.env`. The API image also runs `migrate` and `seed` as commands, e.g. `docker compose -f docker-compose.prod.yml run --rm api seed` for demo data.
+
 ## Not built yet
 
 - Digests to other recipients (today they go to your own email only).
-- Accuracy test set, CI, Docker deploy, rate limits and cost tracking (Phase 4).
 - Teams/workspaces and connecting your own data sources.

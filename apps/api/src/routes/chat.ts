@@ -20,6 +20,7 @@ import { getModel } from '../ai/model';
 import { chartContext, SYSTEM_PROMPT, userContext } from '../ai/prompt';
 import { createTools } from '../ai/tools';
 import { requireUser, type AppEnv } from '../context';
+import { startUsage } from '../usage';
 import { ownedCollection } from './collections';
 
 const { chat, message } = schema;
@@ -152,6 +153,17 @@ export const chatRoutes = new Hono<AppEnv>()
       throw e;
     }
 
+    const { model, label } = getModel();
+    // Check the daily limit before saving anything, so a refused question leaves no trace.
+    const usage = await startUsage(user.id, row.id, label);
+    if (!usage.allowed) {
+      // Plain text so the chat UI can show it as the error message.
+      return c.text(
+        `You've reached today's limit of ${usage.limit} questions. It resets at midnight UTC.`,
+        429
+      );
+    }
+
     // Persist the user's message right away so it survives even if the model call fails.
     await saveMessages(row.id, [body.message]);
     if (row.title === 'New chat') {
@@ -159,7 +171,6 @@ export const chatRoutes = new Hono<AppEnv>()
       await db.update(chat).set({ title }).where(eq(chat.id, row.id));
     }
 
-    const { model } = getModel();
     const result = streamText({
       model,
       system: [
@@ -170,6 +181,9 @@ export const chatRoutes = new Hono<AppEnv>()
       messages: await convertToModelMessages(messages, { tools }),
       tools,
       stopWhen: stepCountIs(8),
+      onEnd: ({ totalUsage }) =>
+        usage.finish('completed', { input: totalUsage.inputTokens, output: totalUsage.outputTokens }),
+      onError: () => usage.finish('failed'),
     });
     // Keep running if the browser disconnects so the answer is still saved.
     result.consumeStream();

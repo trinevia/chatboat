@@ -9,6 +9,7 @@ import { authClient, useSession } from '@/lib/auth-client';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
+import { UsageSection } from './usage-section';
 
 function Section({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return (
@@ -180,6 +181,9 @@ export function SettingsPage() {
       <h1 className='text-xl font-semibold'>Settings</h1>
       <Section title='Profile' description='Your name and role.'>
         <ProfileForm />
+      </Section>
+      <Section title='Usage' description='Your questions and AI usage. Limits keep costs predictable.'>
+        <UsageSection />
       </Section>
       <Section title='Appearance' description='Use your system setting or pick one.'>
         <ThemePicker />

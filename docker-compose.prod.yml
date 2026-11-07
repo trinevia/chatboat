@@ -1,0 +1,54 @@
+# Production-style stack:  docker compose -f docker-compose.prod.yml up -d --build
+# Needs a .env with at least BETTER_AUTH_SECRET, POSTGRES_PASSWORD, ANALYST_PASSWORD,
+# PUBLIC_URL, AI_PROVIDER / AI_MODEL and the provider's API key, and SMTP_URL.
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chatboat
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: chatboat
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U chatboat']
+      interval: 5s
+      retries: 20
+
+  # Applies migrations (and keeps the analyst_ro role in sync), then exits.
+  migrate:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    command: migrate
+    env_file: .env
+    environment: &db
+      DATABASE_URL: postgres://chatboat:${POSTGRES_PASSWORD}@postgres:5432/chatboat
+      ANALYST_DATABASE_URL: postgres://analyst_ro:${ANALYST_PASSWORD:?set ANALYST_PASSWORD}@postgres:5432/chatboat
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: *db
+      BETTER_AUTH_URL: ${PUBLIC_URL:?set PUBLIC_URL}
+      WEB_ORIGIN: ${PUBLIC_URL}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_INTERNAL_URL: http://api:4000
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

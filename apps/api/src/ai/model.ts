@@ -9,6 +9,8 @@ const nvidia = createOpenAICompatible({
   name: 'nvidia',
   baseURL: process.env.NVIDIA_BASE_URL ?? 'https://integrate.api.nvidia.com/v1',
   apiKey: process.env.NVIDIA_API_KEY,
+  // Streaming responses only report token usage when asked; needed for usage tracking.
+  includeUsage: true,
 });
 
 const DEFAULT_MODELS = {
@@ -27,12 +29,17 @@ const FACTORIES: Record<Provider, (id: string) => LanguageModel> = {
   nvidia: id => nvidia.chatModel(id),
 };
 
-/** Pick the chat model from env so the provider can be swapped without code changes. */
-export function getModel(): { model: LanguageModel; label: string } {
-  const provider = (process.env.AI_PROVIDER ?? 'anthropic') as Provider;
+/** A model by provider name and optional id, e.g. modelFor('nvidia', 'nvidia/nemotron-3.5-lightning-30b-a3b'). */
+export function modelFor(provider: string, id?: string): { model: LanguageModel; label: string } {
   if (!(provider in DEFAULT_MODELS)) {
-    throw new Error(`Unknown AI_PROVIDER "${provider}". Use one of: ${Object.keys(DEFAULT_MODELS).join(', ')}.`);
+    throw new Error(`Unknown provider "${provider}". Use one of: ${Object.keys(DEFAULT_MODELS).join(', ')}.`);
   }
-  const id = process.env.AI_MODEL || DEFAULT_MODELS[provider];
-  return { model: FACTORIES[provider](id), label: `${provider}/${id}` };
+  const p = provider as Provider;
+  const modelId = id || DEFAULT_MODELS[p];
+  return { model: FACTORIES[p](modelId), label: `${p}/${modelId}` };
+}
+
+/** Pick the chat model from env so the provider can be swapped without code changes. */
+export function getModel() {
+  return modelFor(process.env.AI_PROVIDER ?? 'anthropic', process.env.AI_MODEL);
 }

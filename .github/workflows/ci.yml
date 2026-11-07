@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Typecheck, test, migrate, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: chatboat
+          POSTGRES_PASSWORD: chatboat
+          POSTGRES_DB: chatboat
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U chatboat"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://chatboat:chatboat@localhost:5432/chatboat
+      ANALYST_DATABASE_URL: postgres://analyst_ro:analyst_ro@localhost:5432/chatboat
+      DISABLE_SCHEDULER: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Unit tests
+        run: pnpm test
+      # Migrations and seed must apply cleanly to an empty database.
+      - name: Migrate and seed
+        run: |
+          pnpm --filter @chatboat/db exec tsx src/migrate.ts
+          pnpm --filter @chatboat/db exec tsx src/seed.ts
+      - name: Read-only role is enforced
+        env:
+          PGPASSWORD: analyst_ro
+        run: |
+          psql -h localhost -U analyst_ro -d chatboat -c "select count(*) from biz.invoices"
+          if psql -h localhost -U analyst_ro -d chatboat -c "delete from biz.invoices" 2>/dev/null; then
+            echo "analyst_ro was able to write"; exit 1
+          fi
+          if psql -h localhost -U analyst_ro -d chatboat -c "select 1 from app.user" 2>/dev/null; then
+            echo "analyst_ro can read app schema"; exit 1
+          fi
+      - name: Build web
+        run: pnpm --filter @chatboat/web build

@@ -37,6 +37,18 @@ export interface ChatDetail {
   chat: { id: string; title: string; isSaved: boolean; groupId: number | null; context: ChartSpec | null };
   messages: UIMessage[];
 }
+export interface UsageSummary {
+  today: { used: number; limit: number };
+  month: {
+    questions: number;
+    failed: number;
+    inputTokens: number;
+    outputTokens: number;
+    avgSeconds: number | null;
+    estimatedCost: number | null;
+  };
+  days: { day: string; questions: number }[];
+}
 export interface DashboardSummary { id: number; name: string; widgetCount: number; createdAt: string }
 export interface Widget { id: number; dashboardId: number; chatId: string | null; chart: ChartSpec; sql: string | null }
 export interface DashboardDetail { id: number; name: string; widgets: Widget[] }
@@ -72,6 +84,7 @@ export const api = {
   deleteSubscription: (id: number) => request<void>(`/subscriptions/${id}`, { method: 'DELETE' }),
   sendSubscription: (id: number) =>
     request<{ ok: boolean; sentTo?: string; error?: string }>(`/subscriptions/${id}/send`, { method: 'POST' }),
+  usage: () => request<UsageSummary>('/usage'),
   insights: () => request<InsightInfo[]>('/insights'),
   refreshInsights: () => request<InsightInfo[]>('/insights/refresh', { method: 'POST' }),
   suggestions: () => request<SuggestedQuestions>('/suggestions'),
