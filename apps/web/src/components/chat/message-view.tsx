@@ -1,0 +1,150 @@
+'use client';
+
+import type { UIMessage } from 'ai';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { BarChart3, Database, Loader2, ThumbsDown, ThumbsUp } from 'lucide-react';
+import type { ChartSpec } from '@chatboat/shared';
+import { api } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { ChartCard } from '@/components/charts/chart-card';
+
+type ToolPart = {
+  type: string;
+  state: 'input-streaming' | 'input-available' | 'output-available' | 'output-error' | string;
+  output?: unknown;
+  errorText?: string;
+};
+
+function Followups({ questions, onPick, disabled }: { questions: string[]; onPick: (q: string) => void; disabled?: boolean }) {
+  return (
+    <div className='flex flex-wrap gap-2'>
+      {questions.map(q => (
+        <button
+          key={q}
+          disabled={disabled}
+          onClick={() => onPick(q)}
+          className='rounded-full border border-border bg-surface px-3 py-1.5 text-xs text-text hover:border-brand hover:text-brand disabled:opacity-50 cursor-pointer'
+        >
+          {q}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Feedback({ messageId }: { messageId: string }) {
+  const [rating, setRating] = useState<'up' | 'down' | null>(null);
+  const send = async (r: 'up' | 'down') => {
+    setRating(r);
+    try {
+      await api.feedback(messageId, r);
+      toast.success('Thanks for the feedback!');
+    } catch {
+      setRating(null);
+      toast.error('Could not save feedback.');
+    }
+  };
+  return (
+    <div className='flex items-center gap-1 text-xs text-muted'>
+      <span className='mr-1'>Was this helpful?</span>
+      {(['up', 'down'] as const).map(r => {
+        const Icon = r === 'up' ? ThumbsUp : ThumbsDown;
+        return (
+          <button
+            key={r}
+            aria-label={r === 'up' ? 'Helpful' : 'Not helpful'}
+            aria-pressed={rating === r}
+            onClick={() => send(r)}
+            className={cn('rounded p-1 hover:text-text cursor-pointer', rating === r && 'text-brand')}
+          >
+            <Icon className='h-3.5 w-3.5' />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function MessageView({
+  message,
+  chatId,
+  isLast,
+  busy,
+  onFollowUp,
+}: {
+  message: UIMessage;
+  chatId: string;
+  isLast: boolean;
+  busy: boolean;
+  onFollowUp: (q: string) => void;
+}) {
+  if (message.role === 'user') {
+    const text = message.parts.map(p => (p.type === 'text' ? p.text : '')).join('');
+    return (
+      <div className='flex justify-end'>
+        <div className='max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-brand px-4 py-2.5 text-sm text-brand-fg'>{text}</div>
+      </div>
+    );
+  }
+
+  let followups: string[] = [];
+  const blocks: React.ReactNode[] = [];
+  message.parts.forEach((part, i) => {
+    if (part.type === 'text') {
+      if (part.text.trim()) blocks.push(<p key={i} className='whitespace-pre-wrap text-sm leading-relaxed'>{part.text}</p>);
+      return;
+    }
+    if (!part.type.startsWith('tool-')) return;
+    const p = part as ToolPart;
+    const name = p.type.slice(5);
+    const done = p.state === 'output-available';
+
+    if (name === 'runSql') {
+      const out = p.output as { ok: boolean; rowCount?: number } | undefined;
+      if (!done) {
+        blocks.push(
+          <div key={i} className='flex items-center gap-2 text-xs text-muted'>
+            <Loader2 className='h-3.5 w-3.5 animate-spin' /> Querying your data…
+          </div>
+        );
+      } else if (out?.ok && busy && isLast) {
+        blocks.push(
+          <div key={i} className='flex items-center gap-2 text-xs text-muted'>
+            <Database className='h-3.5 w-3.5' /> Found {out.rowCount} rows
+          </div>
+        );
+      }
+      return;
+    }
+    if (name === 'renderChart') {
+      const out = p.output as { ok: true; chart: ChartSpec } | { ok: false } | undefined;
+      if (!done) {
+        blocks.push(
+          <div key={i} className='h-64 animate-pulse rounded-xl border border-border bg-surface' aria-label='Building chart' />
+        );
+      } else if (out?.ok) {
+        blocks.push(<ChartCard key={i} spec={out.chart} chatId={chatId} />);
+      }
+      return;
+    }
+    if (name === 'suggestFollowups' && done) {
+      followups = (p.output as { questions: string[] }).questions ?? [];
+    }
+  });
+
+  if (!blocks.length && !followups.length) return null;
+
+  return (
+    <div className='flex gap-3'>
+      <span className='mt-0.5 hidden h-7 w-7 shrink-0 place-items-center rounded-lg bg-brand text-brand-fg sm:grid'>
+        <BarChart3 className='h-4 w-4' />
+      </span>
+      <div className='min-w-0 flex-1 space-y-3'>
+        {blocks}
+        {isLast && !busy && followups.length > 0 && <Followups questions={followups} onPick={onFollowUp} disabled={busy} />}
+        {isLast && !busy && <Feedback messageId={message.id} />}
+      </div>
+    </div>
+  );
+}
