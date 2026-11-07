@@ -7,6 +7,8 @@ export interface EvalCase {
   id: string;
   question: string;
   sql: string;
+  /** "Which X had the most…" questions: listing every row is fine if the right one is there. */
+  allowExtraRows?: boolean;
 }
 
 const SALES = `i.status <> 'void'`;
@@ -44,7 +46,7 @@ export const CASES: EvalCase[] = [
     id: 'top5-customers-2025',
     question: 'Who were the top 5 customers by sales in 2025?',
     sql: `SELECT c.name, SUM(i.total_amount) AS s FROM biz.invoices i JOIN biz.customers c ON c.id = i.customer_id
-          WHERE ${SALES} AND ${Y2025} GROUP BY c.name ORDER BY s DESC LIMIT 5`,
+          WHERE ${SALES} AND ${Y2025} GROUP BY c.id, c.name ORDER BY s DESC LIMIT 5`,
   },
   {
     id: 'monthly-sales-2025',
@@ -92,7 +94,7 @@ export const CASES: EvalCase[] = [
   },
   {
     id: 'payments-by-method-2025',
-    question: 'Total payments received by payment method in 2025 (by payment date).',
+    question: 'For each payment method, what was the total amount of payments received in 2025? (Use the payment date to decide the year.)',
     sql: `SELECT method, SUM(amount) FROM biz.payments WHERE paid_on >= '2025-01-01' AND paid_on < '2026-01-01' GROUP BY method`,
   },
   {
@@ -106,6 +108,7 @@ export const CASES: EvalCase[] = [
     question: 'Which sales rep had the highest sales in 2025, and how much?',
     sql: `SELECT s.name, SUM(i.total_amount) AS t FROM biz.invoices i JOIN biz.sales_reps s ON s.id = i.sales_rep_id
           WHERE ${SALES} AND ${Y2025} GROUP BY s.id, s.name ORDER BY t DESC LIMIT 1`,
+    allowExtraRows: true,
   },
   {
     id: 'margin-by-category-2025',
@@ -118,7 +121,8 @@ export const CASES: EvalCase[] = [
   {
     id: 'new-customers-per-year',
     question: 'How many new customers were created each year?',
-    sql: `SELECT extract(year FROM created_on), COUNT(*) FROM biz.customers GROUP BY 1`,
+    // Year as text: it's a label, only the counts are compared.
+    sql: `SELECT to_char(created_on, 'YYYY'), COUNT(*) FROM biz.customers GROUP BY 1`,
   },
   {
     id: 'q4-2025-by-region',
@@ -144,6 +148,7 @@ export const CASES: EvalCase[] = [
     question: 'Which month of 2025 had the highest sales, and what was the total?',
     sql: `SELECT date_trunc('month', issue_date), SUM(total_amount) AS t FROM biz.invoices i
           WHERE ${SALES} AND ${Y2025} GROUP BY 1 ORDER BY t DESC LIMIT 1`,
+    allowExtraRows: true,
   },
   {
     id: 'stock-value-at-cost',

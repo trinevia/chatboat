@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Suspense, useState } from 'react';
-import { BarChart3, LayoutDashboard, LogOut, Mail, Menu as MenuIcon, MessageSquarePlus, Settings, X } from 'lucide-react';
+import { BarChart3, LayoutDashboard, LogOut, Mail, Menu as MenuIcon, MessageSquarePlus, Settings, Shield, X } from 'lucide-react';
+import { Brand } from '@/components/branding';
 import { signOut, useSession } from '@/lib/auth-client';
 import { cn } from '@/lib/utils';
 import { ChatHistory } from '@/components/chat/chat-history';
@@ -32,19 +33,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const sidebar = (
     <div className='flex h-full flex-col gap-4 p-3'>
-      <Link href='/' className='flex items-center gap-2 px-2 pt-1 text-base font-semibold'>
-        <span className='grid h-7 w-7 place-items-center rounded-lg bg-brand text-brand-fg'>
-          <BarChart3 className='h-4 w-4' />
-        </span>
-        Chatboat
+      <Link href='/' className='px-2 pt-1 text-base'>
+        <Brand />
       </Link>
       {/* URL hooks (usePathname/useParams) must sit inside Suspense with Cache Components. */}
-      <Suspense fallback={<div className='h-[152px]' />}>
+      <Suspense fallback={<div className='h-[190px]' />}>
         <nav className='space-y-0.5'>
           <NavLink href='/' icon={MessageSquarePlus}>New question</NavLink>
           <NavLink href='/dashboards' icon={LayoutDashboard}>Dashboards</NavLink>
           <NavLink href='/subscriptions' icon={Mail}>Subscriptions</NavLink>
           <NavLink href='/settings' icon={Settings}>Settings</NavLink>
+          {session?.user.accessRole === 'admin' && (
+            <NavLink href='/admin' icon={Shield}>Admin</NavLink>
+          )}
         </nav>
       </Suspense>
       <Suspense fallback={<div className='flex-1' />}>
@@ -90,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button aria-label='Open menu' onClick={() => setMobileOpen(true)} className='-ml-2 p-2'>
             <MenuIcon className='h-5 w-5' />
           </button>
-          <span className='font-semibold'>Chatboat</span>
+          <Brand />
         </header>
         <main className='min-h-0 flex-1 overflow-y-auto'>{children}</main>
       </div>

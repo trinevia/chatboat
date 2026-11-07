@@ -60,9 +60,7 @@ export function LoginForm() {
         <Link href='/forgot-password' className='text-muted hover:text-text'>
           Forgot password?
         </Link>
-        <Link href='/signup' className='font-medium text-brand'>
-          Create account
-        </Link>
+        <span className='text-muted'>No account? Ask your admin for an invite.</span>
       </div>
     </form>
   );

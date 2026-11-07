@@ -13,3 +13,11 @@ export const requireUser = createMiddleware<AppEnv>(async (c, next) => {
   c.set('session', result.session);
   await next();
 });
+
+/** Only admins of this install (manage members, branding, data sources). Use after requireUser. */
+export const requireAdmin = createMiddleware<AppEnv>(async (c, next) => {
+  if ((c.get('user') as { accessRole?: string }).accessRole !== 'admin') {
+    return c.json({ error: 'Admins only' }, 403);
+  }
+  await next();
+});

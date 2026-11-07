@@ -3,6 +3,9 @@ import type {
   ChatListItem,
   Collection,
   InsightInfo,
+  Member,
+  PendingInvite,
+  SetupStatus,
   PublicShare,
   ShareLinkInfo,
   SubscriptionInfo,
@@ -53,7 +56,27 @@ export interface DashboardSummary { id: number; name: string; widgetCount: numbe
 export interface Widget { id: number; dashboardId: number; chatId: string | null; chart: ChartSpec; sql: string | null }
 export interface DashboardDetail { id: number; name: string; widgets: Widget[] }
 
+export interface Branding {
+  companyName: string;
+  logo: string | null;
+}
+
 export const api = {
+  setupStatus: () => request<SetupStatus>('/setup/status'),
+  setup: (body: { companyName: string; name: string; email: string; password: string; role: string }) =>
+    request<unknown>('/setup', { method: 'POST', body: JSON.stringify(body) }),
+  invitation: (token: string) => request<{ email: string; companyName: string }>(`/invitations/${token}`),
+  acceptInvitation: (token: string, body: { name: string; password: string }) =>
+    request<unknown>(`/invitations/${token}/accept`, { method: 'POST', body: JSON.stringify(body) }),
+  adminMembers: () => request<{ members: Member[]; pending: PendingInvite[]; emailConfigured: boolean }>('/admin/members'),
+  invite: (body: { email: string; accessRole: string; role: string }) =>
+    request<{ link: string; emailed: boolean }>('/admin/invitations', { method: 'POST', body: JSON.stringify(body) }),
+  revokeInvite: (token: string) => request<void>(`/admin/invitations/${token}`, { method: 'DELETE' }),
+  updateMember: (id: string, body: { accessRole?: string; role?: string }) =>
+    request<void>(`/admin/members/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  removeMember: (id: string) => request<void>(`/admin/members/${id}`, { method: 'DELETE' }),
+  saveBranding: (body: Branding) => request<Branding>('/admin/branding', { method: 'PUT', body: JSON.stringify(body) }),
+
   listChats: (q?: string) => request<ChatListItem[]>(`/chats${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   createChat: (body: { title?: string; contextChart?: ChartSpec } = {}) =>
     request<{ id: string }>('/chats', { method: 'POST', body: JSON.stringify(body) }),

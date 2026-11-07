@@ -1,13 +1,6 @@
-import { Suspense } from 'react';
-import { AuthCard } from '@/components/auth/auth-card';
-import { SignupForm } from '@/components/auth/forms';
+import { redirect } from 'next/navigation';
 
+// Accounts are created by invitation only (or by the setup wizard on a new install).
 export default function Page() {
-  return (
-    <AuthCard title="Create your account" subtitle="Get charts from your sales and finance data in seconds.">
-      <Suspense>
-        <SignupForm />
-      </Suspense>
-    </AuthCard>
-  );
+  redirect('/login');
 }

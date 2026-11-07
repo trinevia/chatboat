@@ -18,3 +18,12 @@ describe('eval scoring', () => {
     expect(score([{ n: 565 }], [{ count: 564 }]).pass).toBe(false);
   });
 });
+
+describe('eval scoring: argmax questions', () => {
+  it('accepts extra rows when allowed, as long as the right row is there', () => {
+    const expected = [{ month: '2025-10', total: 500 }];
+    const all = [{ m: '2025-09', t: 400.5 }, { m: '2025-10', t: 500 }];
+    expect(score(expected, all, { allowExtraRows: true }).pass).toBe(true);
+    expect(score(expected, all).pass).toBe(false);
+  });
+});

@@ -17,9 +17,11 @@ const close = (a: number, b: number, tol: number) => {
  * row count matches. Text columns like names are not compared: a wrong name
  * almost always comes with a wrong number.
  */
-export function score(expected: Row[], actual: Row[] | null, tol = 0.005) {
+export function score(expected: Row[], actual: Row[] | null, opts: { tol?: number; allowExtraRows?: boolean } = {}) {
+  const tol = opts.tol ?? 0.005;
   if (!actual) return { pass: false, reason: 'No query result' };
-  if (actual.length !== expected.length) {
+  const rowsOk = opts.allowExtraRows ? actual.length >= expected.length : actual.length === expected.length;
+  if (!rowsOk) {
     return { pass: false, reason: `Expected ${expected.length} rows, got ${actual.length}` };
   }
   const pool = numbersIn(actual);

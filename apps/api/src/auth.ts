@@ -2,6 +2,22 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db, schema } from '@chatboat/db';
 
+/**
+ * Sign-up is closed: accounts are only created by the setup wizard (first admin) or by
+ * accepting an invitation. Those endpoints put the email here for the duration of the call.
+ */
+const allowedSignups = new Set<string>();
+
+export async function withSignupAllowed<T>(email: string, fn: () => Promise<T>): Promise<T> {
+  const key = email.trim().toLowerCase();
+  allowedSignups.add(key);
+  try {
+    return await fn();
+  } finally {
+    allowedSignups.delete(key);
+  }
+}
+
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
@@ -28,6 +44,15 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       role: { type: 'string', defaultValue: 'sales', input: true },
+      // Never settable by the client; changed only by admins through /api/admin.
+      accessRole: { type: 'string', defaultValue: 'member', input: false },
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async user => (allowedSignups.has(user.email.toLowerCase()) ? undefined : false),
+      },
     },
   },
 });

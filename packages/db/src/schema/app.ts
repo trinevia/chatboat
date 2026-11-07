@@ -22,6 +22,8 @@ export const user = app.table('user', {
   image: text('image'),
   /** Business role, used for role-based suggested questions. */
   role: text('role').notNull().default('sales'),
+  /** What the person may do in this install: admins manage members, branding and data. */
+  accessRole: text('access_role', { enum: ['admin', 'member'] }).notNull().default('member'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -64,6 +66,26 @@ export const verification = app.table('verification', {
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// ---- Install settings & invitations ------------------------------------------
+/** Install-wide settings an admin can change in the app (company name, logo, …). Secrets stay in env. */
+export const setting = app.table('setting', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').notNull(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+/** Sign-up is invite-only: an admin invites by email, the link lets that person create an account. */
+export const invitation = app.table('invitation', {
+  token: text('token').primaryKey(),
+  email: text('email').notNull(),
+  accessRole: text('access_role', { enum: ['admin', 'member'] }).notNull().default('member'),
+  businessRole: text('business_role').notNull().default('sales'),
+  invitedBy: text('invited_by').references(() => user.id, { onDelete: 'set null' }),
+  expiresAt: timestamp('expires_at').notNull(),
+  acceptedAt: timestamp('accepted_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
 // ---- Chats ---------------------------------------------------------------

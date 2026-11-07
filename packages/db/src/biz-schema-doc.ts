@@ -8,7 +8,7 @@ PostgreSQL schema "biz" (always qualify tables as biz.<table>):
 biz.regions(id, name, state)                -- name: West|East|Central|South; state: US state name e.g. 'California'
 biz.sales_reps(id, name, email, region_id -> regions.id)
 biz.customers(id, name, industry, segment, region_id -> regions.id, city, created_on date)
-                                            -- segment: SMB|Mid-Market|Enterprise
+                                            -- segment: SMB|Mid-Market|Enterprise. Names are NOT unique: group by id, name.
 biz.products(id, sku, name, category, unit_price numeric, unit_cost numeric)
 biz.invoices(id, invoice_number, customer_id -> customers.id, sales_rep_id -> sales_reps.id,
              issue_date date, due_date date, status, total_amount numeric)

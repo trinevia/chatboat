@@ -5,6 +5,7 @@ import { runAnalystQuery } from '../ai/analyst-db';
 import { renderChartPng } from './chart-image';
 import { sendEmail } from './email';
 import { describeSchedule } from './schedule';
+import { getBranding } from '../settings';
 import { chartTotal, describeChange } from './totals';
 
 const { subscription, subscriptionRun, dashboard, dashboardWidget, user } = schema;
@@ -51,7 +52,7 @@ function smallTable(chart: ChartSpec) {
   </table>${chart.rows.length > rows.length ? `<p style="font-size:12px;color:#6b7280">+ ${chart.rows.length - rows.length} more rows in the app</p>` : ''}`;
 }
 
-function buildEmail(opts: { dashboardName: string; dashboardId: number; schedule: string; sections: Section[] }) {
+function buildEmail(opts: { companyName: string; dashboardName: string; dashboardId: number; schedule: string; sections: Section[] }) {
   const images: { cid: string; content: Buffer }[] = [];
   const blocks = opts.sections.map((s, i) => {
     const png = renderChartPng(s.chart);
@@ -76,7 +77,7 @@ function buildEmail(opts: { dashboardName: string; dashboardId: number; schedule
   const link = `${appUrl()}/dashboards/${opts.dashboardId}`;
   const html = `<!doctype html><html><body style="margin:0;background:#f7f7f9;font-family:Arial,Helvetica,sans-serif;color:#16181d">
     <div style="max-width:600px;margin:0 auto;padding:24px">
-      <div style="font-size:13px;color:#6b7280">Chatboat digest</div>
+      <div style="font-size:13px;color:#6b7280">${esc(opts.companyName)} · Chatboat digest</div>
       <h1 style="font-size:22px;margin:4px 0 0">${esc(opts.dashboardName)}</h1>
       <div style="font-size:13px;color:#6b7280;margin-top:4px">${new Date().toUTCString()}</div>
       ${blocks.join('') || '<p>This dashboard has no charts yet.</p>'}
@@ -114,7 +115,8 @@ export async function runSubscription(subscriptionId: number, trigger: 'schedule
       return { ...c, change: describeChange(previous[c.widgetId], total) };
     });
     const schedule = describeSchedule(sub);
-    const mail = buildEmail({ dashboardName: dash.name, dashboardId: dash.id, schedule, sections });
+    const { companyName } = await getBranding();
+    const mail = buildEmail({ companyName, dashboardName: dash.name, dashboardId: dash.id, schedule, sections });
     await sendEmail({ to: email, subject: `${dash.name} — your Chatboat digest`, ...mail });
 
     await db.update(subscription).set({ lastRunAt: new Date(), lastTotals: totals }).where(eq(subscription.id, sub.id));

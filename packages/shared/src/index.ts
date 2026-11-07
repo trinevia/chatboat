@@ -160,6 +160,73 @@ export interface InsightInfo {
   computedAt: string;
 }
 
+// Business roles (drive suggested questions).
+export const ROLES = ['sales', 'finance', 'operations', 'executive'] as const;
+export type Role = (typeof ROLES)[number];
+
+// ---- Setup, team & branding --------------------------------------------------------
+export const ACCESS_ROLES = ['admin', 'member'] as const;
+export type AccessRole = (typeof ACCESS_ROLES)[number];
+
+const password = z.string().min(8, 'Use at least 8 characters').max(128);
+const personName = z.string().trim().min(1).max(80);
+
+/** Small raster logo as a data URL (rendered with <img>, so no scripts). ~200 KB max. */
+export const logoDataUrl = z
+  .string()
+  .max(280_000, 'Logo must be under 200 KB')
+  .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/, 'Use a PNG, JPEG or WebP image');
+
+export const setupInput = z.object({
+  companyName: z.string().trim().min(1).max(80),
+  name: personName,
+  email: z.string().email(),
+  password,
+  role: z.enum(ROLES).default('executive'),
+});
+
+export const inviteInput = z.object({
+  email: z.string().email(),
+  accessRole: z.enum(ACCESS_ROLES).default('member'),
+  role: z.enum(ROLES).default('sales'),
+});
+
+export const acceptInviteInput = z.object({ name: personName, password });
+
+export const memberPatch = z.object({
+  accessRole: z.enum(ACCESS_ROLES).optional(),
+  role: z.enum(ROLES).optional(),
+});
+
+export const brandingInput = z.object({
+  companyName: z.string().trim().min(1).max(80),
+  logo: logoDataUrl.nullable(),
+});
+
+export interface SetupStatus {
+  needsSetup: boolean;
+  companyName: string;
+  logo: string | null;
+}
+
+export interface Member {
+  id: string;
+  name: string;
+  email: string;
+  accessRole: AccessRole;
+  role: string;
+  createdAt: string;
+  questionsThisMonth: number;
+}
+
+export interface PendingInvite {
+  token: string;
+  email: string;
+  accessRole: AccessRole;
+  role: string;
+  expiresAt: string;
+}
+
 export const createChatInput = z.object({
   title: z.string().max(200).optional(),
   /** Start the chat from an existing chart ("Ask about this chart"). */
@@ -197,8 +264,6 @@ export interface SuggestedQuestions {
   role: string;
 }
 
-export const ROLES = ['sales', 'finance', 'operations', 'executive'] as const;
-export type Role = (typeof ROLES)[number];
 
 /**
  * Long -> wide pivot for multi-series charts.

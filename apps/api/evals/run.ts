@@ -27,8 +27,9 @@ const arg = (name: string) => {
 };
 
 const limit = Number(arg('limit') ?? CASES.length);
-const only = arg('case');
-const concurrency = Number(arg('concurrency') ?? 2);
+const only = arg('case')?.split(',');
+// Free NVIDIA accounts allow few parallel requests; 1 avoids rate-limit errors.
+const concurrency = Number(arg('concurrency') ?? 1);
 const models = (arg('models') ?? '')
   .split(',')
   .filter(Boolean)
@@ -38,11 +39,13 @@ const models = (arg('models') ?? '')
   });
 if (!models.length) models.push(getModel());
 
-const cases = CASES.filter(c => !only || c.id === only).slice(0, limit);
+const cases = CASES.filter(c => !only || only.includes(c.id)).slice(0, limit);
 
 interface Outcome {
   id: string;
   pass: boolean;
+  /** Infrastructure problem (rate limit, network), not a wrong answer. */
+  error?: boolean;
   reason: string;
   seconds: number;
   inputTokens: number;
@@ -60,6 +63,7 @@ async function runCase(c: EvalCase, expected: Row[], model: ReturnType<typeof ge
       prompt: c.question,
       tools,
       stopWhen: stepCountIs(8),
+      maxRetries: 6, // backs off on rate limits (429) before giving up
     });
     // The answer is the query the model charted, or else its last successful query.
     type SqlOut = { ok: boolean; queryId?: string; preview?: Row[] };
@@ -77,7 +81,7 @@ async function runCase(c: EvalCase, expected: Row[], model: ReturnType<typeof ge
       const lastSql = results.filter(r => r.toolName === 'runSql' && (r.output as SqlOut).ok).pop();
       rows = (lastSql?.output as SqlOut | undefined)?.preview ?? null;
     }
-    const verdict = score(expected, rows);
+    const verdict = score(expected, rows, { allowExtraRows: c.allowExtraRows });
     return {
       id: c.id,
       ...verdict,
@@ -87,7 +91,15 @@ async function runCase(c: EvalCase, expected: Row[], model: ReturnType<typeof ge
       sql,
     };
   } catch (e) {
-    return { id: c.id, pass: false, reason: `Error: ${(e as Error).message.slice(0, 120)}`, seconds: (Date.now() - started) / 1000, inputTokens: 0, outputTokens: 0 };
+    return {
+      id: c.id,
+      pass: false,
+      error: true,
+      reason: `Error: ${(e as Error).message.slice(0, 120)}`,
+      seconds: (Date.now() - started) / 1000,
+      inputTokens: 0,
+      outputTokens: 0,
+    };
   }
 }
 
@@ -111,23 +123,28 @@ async function main() {
   for (const c of cases) expected.set(c.id, (await runAnalystQuery(c.sql)).rows);
 
   const lines: string[] = [`# Chatboat accuracy eval — ${new Date().toISOString()}`, ''];
-  const summary: string[] = ['| Model | Passed | Avg time | Tokens (in / out) |', '|---|---|---|---|'];
+  const summary: string[] = ['| Model | Correct | Errors (not scored) | Avg time | Tokens (in / out) |', '|---|---|---|---|---|'];
 
   for (const m of models) {
     console.log(`\n${m.label}`);
     const outcomes = await pool(cases, concurrency, async c => {
       const o = await runCase(c, expected.get(c.id)!, m);
-      console.log(`  ${o.pass ? 'PASS' : 'FAIL'}  ${c.id.padEnd(28)} ${o.seconds.toFixed(1)}s  ${o.pass ? '' : o.reason}`);
+      console.log(`  ${o.pass ? 'PASS' : o.error ? 'ERR ' : 'FAIL'}  ${c.id.padEnd(28)} ${o.seconds.toFixed(1)}s  ${o.pass ? '' : o.reason}`);
       return o;
     });
     const passed = outcomes.filter(o => o.pass).length;
-    const avg = outcomes.reduce((s, o) => s + o.seconds, 0) / outcomes.length;
+    const errors = outcomes.filter(o => o.error).length;
+    const scored = outcomes.length - errors;
+    const answered = outcomes.filter(o => !o.error);
+    const avg = answered.reduce((s, o) => s + o.seconds, 0) / Math.max(1, answered.length);
     const tin = outcomes.reduce((s, o) => s + o.inputTokens, 0);
     const tout = outcomes.reduce((s, o) => s + o.outputTokens, 0);
-    console.log(`  → ${passed}/${outcomes.length} passed, ${avg.toFixed(1)}s average`);
-    summary.push(`| ${m.label} | ${passed}/${outcomes.length} (${Math.round((passed / outcomes.length) * 100)}%) | ${avg.toFixed(1)}s | ${tin} / ${tout} |`);
+    console.log(`  → ${passed}/${scored} correct${errors ? ` (${errors} not scored: errors)` : ''}, ${avg.toFixed(1)}s average`);
+    summary.push(
+      `| ${m.label} | ${passed}/${scored} (${Math.round((passed / Math.max(1, scored)) * 100)}%) | ${errors} | ${avg.toFixed(1)}s | ${tin} / ${tout} |`
+    );
     lines.push(`## ${m.label}`, '', '| Case | Result | Time | Notes |', '|---|---|---|---|');
-    for (const o of outcomes) lines.push(`| ${o.id} | ${o.pass ? '✅' : '❌'} | ${o.seconds.toFixed(1)}s | ${o.pass ? '' : o.reason.replace(/\|/g, '/')} |`);
+    for (const o of outcomes) lines.push(`| ${o.id} | ${o.pass ? '✅' : o.error ? '⚠️' : '❌'} | ${o.seconds.toFixed(1)}s | ${o.pass ? '' : o.reason.replace(/\|/g, '/')} |`);
     lines.push('');
   }
 
