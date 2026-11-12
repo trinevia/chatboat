@@ -34,7 +34,7 @@ export function ThemeToggle() {
     <button
       type='button'
       onClick={next}
-      className='grid h-9 w-9 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-text cursor-pointer'
+      className='grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-surface-2 hover:text-text cursor-pointer'
       aria-label={`Theme: ${theme}. Switch theme`}
       title={`Theme: ${theme}`}
     >

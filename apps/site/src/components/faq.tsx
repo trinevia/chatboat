@@ -33,9 +33,9 @@ export const FAQS: { q: string; a: string }[] = [
 
 export function Faq() {
   return (
-    <div className='mx-auto max-w-3xl divide-y divide-border rounded-2xl border border-border bg-surface'>
+    <div className='w-full divide-y divide-border overflow-hidden rounded-3xl border border-border bg-surface'>
       {FAQS.map((f) => (
-        <details key={f.q} className='group px-5 py-4'>
+        <details key={f.q} className='group px-6 py-5 transition open:bg-surface-2/50'>
           <summary className='flex items-center justify-between gap-4 font-medium'>
             {f.q}
             <ChevronDown className='faq-chevron h-4 w-4 shrink-0 text-muted transition' />
