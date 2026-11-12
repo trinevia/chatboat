@@ -51,17 +51,21 @@ export function LoginForm() {
       }}
     >
       <Field id='email' label='Email' type='email' autoComplete='email' />
-      <Field id='password' label='Password' type='password' autoComplete='current-password' />
+      <div className='space-y-1.5'>
+        <Field id='password' label='Password' type='password' autoComplete='current-password' />
+        <div className='text-right'>
+          <Link href='/forgot-password' className='text-sm text-muted hover:text-text'>
+            Forgot password?
+          </Link>
+        </div>
+      </div>
       <ErrorText>{error}</ErrorText>
       <Button className='w-full justify-center' disabled={pending}>
         {pending ? 'Signing in…' : 'Sign in'}
       </Button>
-      <div className='flex justify-between text-sm'>
-        <Link href='/forgot-password' className='text-muted hover:text-text'>
-          Forgot password?
-        </Link>
-        <span className='text-muted'>No account? Ask your admin for an invite.</span>
-      </div>
+      <p className='border-t border-border pt-4 text-center text-sm text-muted'>
+        No account? Ask your admin for an invite.
+      </p>
     </form>
   );
 }
