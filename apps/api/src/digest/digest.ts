@@ -6,10 +6,11 @@ import { renderChartPng } from './chart-image';
 import { sendEmail } from './email';
 import { describeSchedule } from './schedule';
 import { getBranding } from '../settings';
+import { publicWebUrl } from '../origins';
 import { chartTotal, describeChange } from './totals';
 
 const { subscription, subscriptionRun, dashboard, dashboardWidget, user } = schema;
-const appUrl = () => process.env.WEB_ORIGIN ?? 'http://localhost:3000';
+const appUrl = publicWebUrl;
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const fmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
 

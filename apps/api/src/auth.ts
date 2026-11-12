@@ -1,6 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db, schema } from '@chatboat/db';
+import { webOrigins } from './origins';
 
 /**
  * Sign-up is closed: accounts are only created by the setup wizard (first admin) or by
@@ -21,7 +22,7 @@ export async function withSignupAllowed<T>(email: string, fn: () => Promise<T>):
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
-  trustedOrigins: [process.env.WEB_ORIGIN ?? 'http://localhost:3000'],
+  trustedOrigins: webOrigins(),
   // Own cookie prefix so other apps on localhost can't collide with our session cookie.
   advanced: { cookiePrefix: 'chatboat' },
   database: drizzleAdapter(db, {

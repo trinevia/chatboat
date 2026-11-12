@@ -7,6 +7,7 @@ import { brandingInput, inviteInput, memberPatch, type Member, type PendingInvit
 import { requireAdmin, requireUser, type AppEnv } from '../context';
 import { emailConfigured, sendEmail } from '../digest/email';
 import { getBranding, setSetting } from '../settings';
+import { publicWebUrl } from '../origins';
 
 const { user, session, invitation, aiUsage } = schema;
 const INVITE_DAYS = 7;
@@ -19,7 +20,7 @@ async function adminCount() {
 
 async function sendInviteEmail(to: string, token: string, inviter: string) {
   const { companyName } = await getBranding();
-  const link = `${process.env.WEB_ORIGIN ?? 'http://localhost:3000'}/invite/${token}`;
+  const link = `${publicWebUrl()}/invite/${token}`;
   await sendEmail({
     to,
     subject: companyName === 'Chatboat' ? `${inviter} invited you to Chatboat` : `${inviter} invited you to ${companyName} on Chatboat`,
@@ -97,7 +98,7 @@ export const adminRoutes = new Hono<AppEnv>()
     } catch (e) {
       // Still return the link so the admin can share it another way.
       emailed = false;
-      link = `${process.env.WEB_ORIGIN ?? 'http://localhost:3000'}/invite/${token}`;
+      link = `${publicWebUrl()}/invite/${token}`;
       console.error('[admin] invite email failed:', (e as Error).message);
     }
     return c.json({ link, emailed }, 201);

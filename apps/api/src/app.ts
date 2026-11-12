@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { auth } from './auth';
+import { webOrigins } from './origins';
 import { chatRoutes } from './routes/chat';
 import { dashboardRoutes } from './routes/dashboards';
 import { miscRoutes } from './routes/misc';
@@ -14,7 +15,7 @@ import { invitationRoutes } from './routes/invitations';
 import { adminRoutes } from './routes/admin';
 import { dataSourceRoutes } from './routes/data-sources';
 
-const origin = process.env.WEB_ORIGIN ?? 'http://localhost:3000';
+const origin = webOrigins();
 
 export const app = new Hono()
   .use(logger())
