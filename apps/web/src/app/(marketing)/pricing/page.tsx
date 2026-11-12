@@ -1,9 +1,10 @@
+import { Suspense } from 'react';
 import { AlertCircle } from 'lucide-react';
 import type { Metadata } from 'next';
-import { Faq } from '@/components/faq';
-import { PricingTable } from '@/components/pricing-table';
-import { ButtonLink, SectionHeading } from '@/components/ui';
-import { SITE } from '@/lib/site';
+import { Faq } from '@/components/marketing/faq';
+import { PricingTable } from '@/components/marketing/pricing-table';
+import { ButtonLink, SectionHeading } from '@/components/marketing/ui';
+import { SITE } from '@/lib/marketing/site';
 
 export const metadata: Metadata = {
   title: 'Pricing',
@@ -20,7 +21,7 @@ function CheckoutError({ error }: { error?: string | string[] }) {
   );
 }
 
-export default async function PricingPage({ searchParams }: PageProps<'/pricing'>) {
+async function PricingPageContent({ searchParams }: PageProps<'/pricing'>) {
   const { error } = await searchParams;
   return (
     <>
@@ -39,8 +40,8 @@ export default async function PricingPage({ searchParams }: PageProps<'/pricing'
           </div>
           <p className='mt-8 text-center text-sm text-muted'>
             Prices in USD, excluding tax. Not sure which plan fits?{' '}
-            <a href={SITE.liveDemoUrl} className='font-medium text-brand hover:underline' target='_blank' rel='noopener noreferrer'>
-              Try the live demo
+            <a href={SITE.signInUrl} className='font-medium text-brand hover:underline'>
+              Sign in and try it
             </a>{' '}
             or{' '}
             <a href='/demo' className='font-medium text-brand hover:underline'>
@@ -84,5 +85,14 @@ export default async function PricingPage({ searchParams }: PageProps<'/pricing'
         </div>
       </section>
     </>
+  );
+}
+
+// Reading searchParams makes the page dynamic; Suspense lets the rest of the layout prerender.
+export default function PricingPage(props: PageProps<'/pricing'>) {
+  return (
+    <Suspense fallback={<div className='min-h-[60vh]' />}>
+      <PricingPageContent {...props} />
+    </Suspense>
   );
 }

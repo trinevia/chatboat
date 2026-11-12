@@ -9,7 +9,9 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.resolve(process.cwd(), '../..'),
   cacheComponents: true,
   partialPrefetching: true,
-  transpilePackages: ['@chatboat/shared'],
+  transpilePackages: ['@chatboat/shared', '@chatboat/licence'],
+  // Stripe and nodemailer run only in route handlers / server actions (public pricing and demo pages).
+  serverExternalPackages: ['stripe', 'nodemailer'],
   experimental: {
     // Signed-in pages render on the client from the user's session, so there's no static
     // shell to check. Only validate segments that explicitly export `instant`.

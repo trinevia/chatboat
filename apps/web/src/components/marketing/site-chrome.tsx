@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { SITE } from '@/lib/site';
+import { SITE } from '@/lib/marketing/site';
 import { ThemeToggle } from './theme-toggle';
 import { Brand, ButtonLink } from './ui';
 
@@ -12,11 +12,11 @@ export function Header() {
         </Link>
         <nav className='hidden items-center text-sm md:flex'>
           {[
-            ['/#how-it-works', 'How it works'],
-            ['/#features', 'Features'],
-            ['/#security', 'Security'],
+            ['/welcome#how-it-works', 'How it works'],
+            ['/welcome#features', 'Features'],
+            ['/welcome#security', 'Security'],
             ['/pricing', 'Pricing'],
-            ['/#faq', 'FAQ'],
+            ['/welcome#faq', 'FAQ'],
           ].map(([href, label]) => (
             <Link key={href} href={href!} className='rounded-full px-3 py-1.5 text-muted transition hover:bg-surface-2 hover:text-text'>
               {label}
@@ -25,13 +25,13 @@ export function Header() {
         </nav>
         <div className='ml-auto flex items-center gap-1'>
           <ThemeToggle />
-          <span className='hidden lg:block'>
-            <ButtonLink href={SITE.liveDemoUrl} external variant='ghost' className='h-9'>
-              Live demo
+          <span className='hidden sm:block'>
+            <ButtonLink href='/demo' variant='ghost' className='h-9'>
+              Book a demo
             </ButtonLink>
           </span>
-          <ButtonLink href='/demo' className='h-9'>
-            Book a demo
+          <ButtonLink href={SITE.signInUrl} className='h-9'>
+            Sign in
           </ButtonLink>
         </div>
       </div>
@@ -54,23 +54,23 @@ export function Footer() {
         <FooterCol
           title='Product'
           links={[
-            ['/#how-it-works', 'How it works'],
-            ['/#features', 'Features'],
+            ['/welcome#how-it-works', 'How it works'],
+            ['/welcome#features', 'Features'],
             ['/pricing', 'Pricing'],
-            [SITE.liveDemoUrl, 'Live demo'],
+            [SITE.signInUrl, 'Sign in'],
           ]}
         />
         <FooterCol
           title='Company'
           links={[
-            ['/#security', 'Security'],
+            ['/welcome#security', 'Security'],
             ['/demo', 'Book a demo'],
-            ['/#faq', 'FAQ'],
+            ['/welcome#faq', 'FAQ'],
           ]}
         />
         <div>
           <h3 className='text-sm font-semibold'>Customers</h3>
-          <form action='/api/portal' method='post' className='mt-3'>
+          <form action='/billing/portal' method='post' className='mt-3'>
             <button className='text-sm text-muted transition hover:text-text cursor-pointer'>Manage subscription</button>
           </form>
         </div>

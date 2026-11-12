@@ -2,7 +2,7 @@
 
 import { Check } from 'lucide-react';
 import { useState } from 'react';
-import { PLAN_CARDS, SETUP_FEE, usd } from '@/lib/plans';
+import { PLAN_CARDS, SETUP_FEE, usd } from '@/lib/marketing/plans';
 import { buttonClass, cn } from './ui';
 
 type Interval = 'month' | 'year';
@@ -70,7 +70,7 @@ export function PricingTable() {
                 ))}
               </ul>
 
-              <form action='/api/checkout' method='post' className='mt-8 space-y-3'>
+              <form action='/billing/checkout' method='post' className='mt-8 space-y-3'>
                 <input type='hidden' name='plan' value={p.id} />
                 <input type='hidden' name='interval' value={interval} />
                 <label className='flex items-start gap-2 text-sm text-muted'>

@@ -203,12 +203,12 @@ pnpm --filter @chatboat/api eval -- --cases company-questions.json
 Three pieces sell Chatboat and license each install. None of them run inside a customer's install.
 
 ```
-apps/site/         Public marketing site (Next.js, port 3100): landing, /pricing, /demo, Stripe Checkout
+apps/web/          Also serves the public website: landing at / (signed out), /pricing, /demo, Stripe Checkout
 apps/control/      Our internal control panel (Hono, port 4100): Stripe webhook, customer list, licence refresh
 packages/licence/  Plans and limits, Ed25519 licence signing and offline verification
 ```
 
-**How a sale works:** a buyer picks a plan on `/pricing` (monthly or yearly, optionally "Host it for us", which adds the one-time setup fee). `POST /api/checkout` opens Stripe Checkout and asks for the company name. Stripe then calls `apps/control` at `POST /stripe/webhook`. That handler checks the signature, records the customer in the `control` Postgres schema and signs a licence. We copy the licence from the admin page and send it to the customer. `checkout.session.completed`, `customer.subscription.updated` (plan change, renewal) and `customer.subscription.deleted` are handled. Repeated deliveries are ignored, and any other event type is ignored too.
+**How a sale works:** a buyer picks a plan on `/pricing` (monthly or yearly, optionally "Host it for us", which adds the one-time setup fee). `POST /billing/checkout` opens Stripe Checkout and asks for the company name. Stripe then calls `apps/control` at `POST /stripe/webhook`. That handler checks the signature, records the customer in the `control` Postgres schema and signs a licence. We copy the licence from the admin page and send it to the customer. `checkout.session.completed`, `customer.subscription.updated` (plan change, renewal) and `customer.subscription.deleted` are handled. Repeated deliveries are ignored, and any other event type is ignored too.
 
 **Licences** look like `cb1.<payload>.<signature>`. The payload holds company, plan, limits (`maxUsers`, `maxDataSources`, `questionsPerMonth`, where `null` means unlimited), features and `expiresAt`. A licence expires at the end of the paid period plus `LICENCE_BUFFER_DAYS` (default 7). After a cancellation it expires when the subscription ended. Installs check a licence like this:
 
@@ -227,14 +227,13 @@ pnpm --filter @chatboat/licence keygen          # prints LICENCE_PRIVATE_KEY (co
 pnpm --filter @chatboat/control stripe:setup    # creates the products and prices (lookup keys chatboat_<plan>_<month|year>)
 stripe listen --forward-to localhost:4100/stripe/webhook   # prints STRIPE_WEBHOOK_SECRET
 pnpm --filter @chatboat/control dev             # migrates the control schema, then serves http://localhost:4100/admin
-pnpm --filter @chatboat/site dev                # http://localhost:3100
 ```
 
-Pay with Stripe's test card `4242 4242 4242 4242`. The customer and licence then show up on `/admin` (user `admin`, password `ADMIN_PASSWORD`). Enable the customer portal in the Stripe dashboard under Settings → Billing → Customer portal. Both apps refuse live keys unless `ALLOW_LIVE_STRIPE=1`.
+Then open http://localhost:3000/pricing (signed out) and pay with Stripe's test card `4242 4242 4242 4242`. The customer and licence then show up on `/admin` (user `admin`, password `ADMIN_PASSWORD`). Enable the customer portal in the Stripe dashboard under Settings → Billing → Customer portal. Both apps refuse live keys unless `ALLOW_LIVE_STRIPE=1`.
 
 | Variable | Used by | Purpose |
 |---|---|---|
-| `STRIPE_SECRET_KEY` | site, control | Stripe test key (`sk_test_…`) |
+| `STRIPE_SECRET_KEY` | web, control | Stripe test key (`sk_test_…`) |
 | `STRIPE_WEBHOOK_SECRET` | control | Signing secret of the webhook endpoint (`whsec_…`) |
 | `LICENCE_PRIVATE_KEY` | control | Ed25519 private key (PEM or base64 PEM). Keep it secret |
 | `LICENCE_PUBLIC_KEY` | installs | The matching public key |
@@ -242,10 +241,9 @@ Pay with Stripe's test card `4242 4242 4242 4242`. The customer and licence then
 | `CONTROL_DATABASE_URL` | control | Postgres for the `control` schema (falls back to `DATABASE_URL`) |
 | `CONTROL_PUBLIC_URL`, `CONTROL_PORT` | control | Return URL for the billing portal button; port (default 4100) |
 | `LICENCE_BUFFER_DAYS` | control | Days a licence outlives the paid period (default 7) |
-| `SITE_URL` | site | Public URL used in Stripe redirects (default: the request's origin) |
-| `LIVE_DEMO_URL` | site (build time) | "Try the live demo" link |
-| `STRIPE_PORTAL_LOGIN_URL` | site (build time) | Stripe's portal login link for the footer's "Manage subscription" |
-| `SMTP_URL`, `MAIL_FROM`, `DEMO_REQUEST_TO` | site | Where "Book a demo" requests are emailed (locally: Mailpit) |
+| `SITE_URL` | web | Public URL used in Stripe redirects (default: the request's origin) |
+| `STRIPE_PORTAL_LOGIN_URL` | web (build time) | Stripe's portal login link for the footer's "Manage subscription" |
+| `SMTP_URL`, `MAIL_FROM`, `DEMO_REQUEST_TO` | web | Where "Book a demo" requests are emailed (locally: Mailpit) |
 
 Plan limits live in `packages/licence/src/plans.ts` and list prices in `packages/licence/src/catalogue.ts` (placeholders: $149 / $499 / $1,499 a month, yearly is 10× monthly, setup fee $1,000). To run the control tests against Postgres as well as in memory, use `CONTROL_TEST_DATABASE_URL=postgres://chatboat:chatboat@localhost:5433/chatboat pnpm --filter @chatboat/control test`.
 

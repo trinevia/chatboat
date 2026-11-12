@@ -1,7 +1,11 @@
 import { getSessionCookie } from 'better-auth/cookies';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC = ['/login', '/signup', '/forgot-password', '/reset-password', '/s/', '/setup', '/invite/'];
+const PUBLIC = [
+  '/login', '/signup', '/forgot-password', '/reset-password', '/s/', '/setup', '/invite/',
+  // Public website pages
+  '/welcome', '/pricing', '/demo', '/checkout', '/billing',
+];
 
 /** Where the API runs: localhost in development, a tunnel or server URL in production. */
 const API_URL = (process.env.API_INTERNAL_URL ?? 'http://localhost:4000').replace(/\/$/, '');
@@ -28,6 +32,10 @@ export function proxy(request: NextRequest) {
 
   const isPublic = PUBLIC.some(p => pathname.startsWith(p));
   const hasSession = !!getSessionCookie(request, { cookiePrefix: 'chatboat' });
+
+  // One address for everything: visitors who aren't signed in see the landing page at /,
+  // signed-in people see the app's home there.
+  if (pathname === '/' && !hasSession) return NextResponse.rewrite(new URL('/welcome', request.url));
 
   if (!hasSession && !isPublic) {
     const url = new URL('/login', request.url);

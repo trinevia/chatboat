@@ -1,21 +1,22 @@
+import { Suspense } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import type { Metadata } from 'next';
-import { buttonClass } from '@/components/ui';
-import { SITE } from '@/lib/site';
+import { buttonClass } from '@/components/marketing/ui';
+import { SITE } from '@/lib/marketing/site';
 
 export const metadata: Metadata = { title: 'Thank you', robots: { index: false } };
 
 function ManageBilling({ session_id }: { session_id?: string | string[] }) {
   if (typeof session_id !== 'string' || !session_id.startsWith('cs_')) return null;
   return (
-    <form action='/api/portal' method='post'>
+    <form action='/billing/portal' method='post'>
       <input type='hidden' name='session_id' value={session_id} />
       <button className={buttonClass('secondary')}>Manage billing</button>
     </form>
   );
 }
 
-export default async function CheckoutSuccess({ searchParams }: PageProps<'/checkout/success'>) {
+async function CheckoutSuccessContent({ searchParams }: PageProps<'/checkout/success'>) {
   const { session_id } = await searchParams;
   return (
     <section className='hero-glow'>
@@ -34,5 +35,14 @@ export default async function CheckoutSuccess({ searchParams }: PageProps<'/chec
         </div>
       </div>
     </section>
+  );
+}
+
+// Reading searchParams makes the page dynamic; Suspense lets the rest of the layout prerender.
+export default function CheckoutSuccess(props: PageProps<'/checkout/success'>) {
+  return (
+    <Suspense fallback={<div className='min-h-[60vh]' />}>
+      <CheckoutSuccessContent {...props} />
+    </Suspense>
   );
 }

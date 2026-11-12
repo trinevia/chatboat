@@ -1,7 +1,7 @@
 import { isPlanId, priceLookupKey, SETUP_FEE_LOOKUP_KEY } from '@chatboat/licence';
 import type Stripe from 'stripe';
-import { siteUrl } from '@/lib/site';
-import { getStripe } from '@/lib/stripe';
+import { siteUrl } from '@/lib/marketing/site';
+import { getStripe } from '@/lib/marketing/stripe';
 
 /**
  * Starts a Stripe Checkout for a plan. Posted by the pricing page:

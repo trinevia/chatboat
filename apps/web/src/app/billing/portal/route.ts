@@ -1,5 +1,5 @@
-import { SITE, siteUrl } from '@/lib/site';
-import { getStripe } from '@/lib/stripe';
+import { SITE, siteUrl } from '@/lib/marketing/site';
+import { getStripe } from '@/lib/marketing/stripe';
 
 const MAX_SESSION_AGE_S = 24 * 60 * 60;
 

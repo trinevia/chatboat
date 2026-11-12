@@ -19,10 +19,10 @@ import {
   Table2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { Faq } from '@/components/faq';
-import { ProductPreview } from '@/components/product-preview';
-import { ButtonLink, cn, SectionHeading } from '@/components/ui';
-import { SITE } from '@/lib/site';
+import { Faq } from '@/components/marketing/faq';
+import { ProductPreview } from '@/components/marketing/product-preview';
+import { ButtonLink, cn, SectionHeading } from '@/components/marketing/ui';
+import { SITE } from '@/lib/marketing/site';
 
 const sources = ['PostgreSQL', 'CSV uploads', 'Excel uploads', 'Azure OpenAI', 'AWS Bedrock', 'Anthropic', 'OpenAI', 'Google Gemini', 'Ollama', 'Self-hosted models'];
 
@@ -59,7 +59,7 @@ export default function Home() {
         <div className='bg-grid absolute inset-0' aria-hidden />
         <div className='relative mx-auto max-w-6xl px-4 pt-16 text-center sm:px-6 sm:pt-24'>
           <Link
-            href='/#security'
+            href='/welcome#security'
             className='glass mx-auto inline-flex items-center gap-2 rounded-full py-1 pr-3 pl-1 text-xs font-medium text-muted transition hover:text-text'
           >
             <span className='rounded-full bg-brand px-2 py-0.5 text-[11px] font-semibold text-brand-fg'>New</span>
@@ -75,8 +75,8 @@ export default function Home() {
             privately, so your data never leaves your environment.
           </p>
           <div className='mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row'>
-            <ButtonLink href={SITE.liveDemoUrl} external size='lg'>
-              Try the live demo <ArrowRight className='h-4 w-4' />
+            <ButtonLink href={SITE.signInUrl} size='lg'>
+              Get started <ArrowRight className='h-4 w-4' />
             </ButtonLink>
             <ButtonLink href='/demo' variant='secondary' size='lg'>
               Book a demo
@@ -293,10 +293,10 @@ export default function Home() {
           <div className='bg-grid absolute inset-0' aria-hidden />
           <div className='relative'>
             <h2 className='mx-auto max-w-2xl text-4xl font-semibold tracking-[-0.03em] text-balance sm:text-6xl'>See it on your own questions</h2>
-            <p className='mx-auto mt-5 max-w-xl text-lg text-muted'>Try the demo on sample data now, or book 30 minutes and we&apos;ll show it on data like yours.</p>
+            <p className='mx-auto mt-5 max-w-xl text-lg text-muted'>Sign in to try it on sample data now, or book 30 minutes and we&apos;ll show it on data like yours.</p>
             <div className='mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row'>
-              <ButtonLink href={SITE.liveDemoUrl} external size='lg'>
-                Try the live demo <ArrowRight className='h-4 w-4' />
+              <ButtonLink href={SITE.signInUrl} size='lg'>
+                Get started <ArrowRight className='h-4 w-4' />
               </ButtonLink>
               <ButtonLink href='/pricing' variant='secondary' size='lg'>
                 See pricing

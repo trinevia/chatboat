@@ -3,8 +3,8 @@ export const SITE = {
   name: 'Chatboat',
   domain: 'chatboat.ai',
   tagline: 'Ask your business data anything',
-  /** Read at build time. The sample-data install with a one-click demo login. */
-  liveDemoUrl: process.env.LIVE_DEMO_URL || 'https://demo.chatboat.ai',
+  /** The product lives on the same site: "Get started" / "Sign in" go to its login page. */
+  signInUrl: '/login',
   /** Stripe's no-code customer portal login link (Settings → Billing → Customer portal). Optional. */
   portalLoginUrl: process.env.STRIPE_PORTAL_LOGIN_URL || null,
 };

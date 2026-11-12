@@ -2,7 +2,7 @@
 
 import { CheckCircle2 } from 'lucide-react';
 import { useActionState } from 'react';
-import { requestDemo, type DemoFormState } from '@/app/demo/actions';
+import { requestDemo, type DemoFormState } from '@/app/(marketing)/demo/actions';
 import { buttonClass, cn } from './ui';
 
 const initial: DemoFormState = { ok: false, message: '' };

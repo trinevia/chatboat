@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["DATABASE_URL", "AI_PROVIDER", "AI_MODEL", "LIVE_DEMO_URL", "SITE_URL", "STRIPE_PORTAL_LOGIN_URL"],
+  "globalEnv": ["DATABASE_URL", "AI_PROVIDER", "AI_MODEL", "SITE_URL", "STRIPE_PORTAL_LOGIN_URL"],
   "globalPassThroughEnv": ["CONTROL_TEST_DATABASE_URL"],
   "tasks": {
     "dev": { "cache": false, "persistent": true },

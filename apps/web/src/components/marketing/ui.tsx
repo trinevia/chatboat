@@ -1,6 +1,6 @@
 import { BarChart3 } from 'lucide-react';
 import Link from 'next/link';
-import { SITE } from '@/lib/site';
+import { SITE } from '@/lib/marketing/site';
 
 export const cn = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 

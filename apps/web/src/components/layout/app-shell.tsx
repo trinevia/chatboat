@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import { BarChart3, LayoutDashboard, LogOut, Mail, Menu as MenuIcon, MessageSquarePlus, Settings, Shield, X } from 'lucide-react';
 import { Brand } from '@/components/branding';
@@ -29,7 +29,6 @@ function NavLink({ href, icon: Icon, children }: { href: string; icon: typeof Ba
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: session } = useSession();
-  const router = useRouter();
 
   const sidebar = (
     <div className='flex h-full flex-col gap-4 p-3'>
@@ -61,7 +60,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           className='rounded-md p-2 text-muted hover:bg-surface-2 hover:text-text cursor-pointer'
           onClick={async () => {
             await signOut();
-            router.push('/login');
+            // Full reload so / serves the landing page now that the session cookie is gone.
+            window.location.href = '/';
           }}
         >
           <LogOut className='h-4 w-4' />

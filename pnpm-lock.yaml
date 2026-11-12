@@ -140,57 +140,14 @@ importers:
         specifier: ^5.1.0
         version: 5.1.0(@types/node@22.20.5)(vite@8.3.6(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
-  apps/site:
-    dependencies:
-      '@chatboat/licence':
-        specifier: workspace:*
-        version: link:../../packages/licence
-      lucide-react:
-        specifier: ^1.70.0
-        version: 1.70.0(@types/react@19.3.0)(react@19.3.0)
-      next:
-        specifier: 16.4.5
-        version: 16.4.5(@babel/core@7.29.13)(@types/node@22.20.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      nodemailer:
-        specifier: ^10.3.1
-        version: 10.3.1
-      react:
-        specifier: 19.3.0
-        version: 19.3.0
-      react-dom:
-        specifier: 19.3.0
-        version: 19.3.0(react@19.3.0)
-      stripe:
-        specifier: ^23.1.0
-        version: 23.1.0(@types/node@22.20.5)
-    devDependencies:
-      '@tailwindcss/turbopack':
-        specifier: ^4
-        version: 4.3.5
-      '@types/node':
-        specifier: ^22
-        version: 22.20.5
-      '@types/nodemailer':
-        specifier: ^8.0.2
-        version: 8.0.2
-      '@types/react':
-        specifier: ^19
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: ^19
-        version: 19.3.0(@types/react@19.3.0)
-      tailwindcss:
-        specifier: ^4
-        version: 4.3.5
-      typescript:
-        specifier: ^5
-        version: 5.9.3
-
   apps/web:
     dependencies:
       '@ai-sdk/react':
         specifier: ^4.0.168
         version: 4.0.168(react@19.3.0)(zod@4.6.7)
+      '@chatboat/licence':
+        specifier: workspace:*
+        version: link:../../packages/licence
       '@chatboat/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -218,6 +175,9 @@ importers:
       next:
         specifier: 16.4.5
         version: 16.4.5(@babel/core@7.29.13)(@types/node@22.20.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      nodemailer:
+        specifier: ^10.3.1
+        version: 10.3.1
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -230,6 +190,9 @@ importers:
       sonner:
         specifier: ^2.0.7
         version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      stripe:
+        specifier: ^23.1.0
+        version: 23.1.0(@types/node@22.20.5)
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.7.0
@@ -240,6 +203,9 @@ importers:
       '@types/node':
         specifier: ^22
         version: 22.20.5
+      '@types/nodemailer':
+        specifier: ^8.0.2
+        version: 8.0.2
       '@types/react':
         specifier: ^19
         version: 19.3.0
@@ -6343,7 +6309,7 @@ snapshots:
       eslint: 9.39.5(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.10
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-react: 7.37.5(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-react-hooks: 7.1.1(eslint@9.39.5(jiti@2.7.0))
@@ -6376,7 +6342,7 @@ snapshots:
       tinyglobby: 0.2.17
       unrs-resolver: 1.13.0
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))
     transitivePeerDependencies:
       - supports-color
 
@@ -6391,7 +6357,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0)):
+  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.2.0

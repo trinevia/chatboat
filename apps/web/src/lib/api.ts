@@ -31,7 +31,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     credentials: 'include',
   });
   if (res.status === 401 && typeof window !== 'undefined') {
-    window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+    // An expired session on the home page shows the landing page; elsewhere, sign in again.
+    const here = window.location.pathname;
+    window.location.href = here === '/' ? '/welcome' : `/login?next=${encodeURIComponent(here)}`;
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

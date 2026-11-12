@@ -1,14 +1,15 @@
+import { Suspense } from 'react';
 import { CalendarCheck, MonitorPlay, ShieldCheck } from 'lucide-react';
 import type { Metadata } from 'next';
-import { DemoForm } from '@/components/demo-form';
-import { SITE } from '@/lib/site';
+import { DemoForm } from '@/components/marketing/demo-form';
+import { SITE } from '@/lib/marketing/site';
 
 export const metadata: Metadata = {
   title: 'Book a demo',
   description: `See ${SITE.name} on data like yours in a 30-minute call.`,
 };
 
-export default async function DemoPage({ searchParams }: PageProps<'/demo'>) {
+async function DemoPageContent({ searchParams }: PageProps<'/demo'>) {
   const { topic } = await searchParams;
   return (
     <section className='hero-glow'>
@@ -22,7 +23,7 @@ export default async function DemoPage({ searchParams }: PageProps<'/demo'>) {
             {[
               [CalendarCheck, 'We reply within one working day', 'to find a time that suits you.'],
               [ShieldCheck, 'Security and setup', 'Where it runs, what it can read, and which AI model it uses.'],
-              [MonitorPlay, 'Rather explore first?', 'The live demo runs on sample data, no sign-up needed.'],
+              [MonitorPlay, 'Rather explore first?', 'Sign in and ask questions about the built-in sample data.'],
             ].map(([Icon, t, b]) => {
               const I = Icon as typeof CalendarCheck;
               return (
@@ -36,13 +37,8 @@ export default async function DemoPage({ searchParams }: PageProps<'/demo'>) {
               );
             })}
           </ul>
-          <a
-            href={SITE.liveDemoUrl}
-            target='_blank'
-            rel='noopener noreferrer'
-            className='mt-6 inline-block text-sm font-medium text-brand hover:underline'
-          >
-            Open the live demo →
+          <a href={SITE.signInUrl} className='mt-6 inline-block text-sm font-medium text-brand hover:underline'>
+            Already have an account? Sign in →
           </a>
         </div>
         <div className='rounded-2xl border border-border bg-surface p-6 sm:p-8'>
@@ -50,5 +46,14 @@ export default async function DemoPage({ searchParams }: PageProps<'/demo'>) {
         </div>
       </div>
     </section>
+  );
+}
+
+// Reading searchParams makes the page dynamic; Suspense lets the rest of the layout prerender.
+export default function DemoPage(props: PageProps<'/demo'>) {
+  return (
+    <Suspense fallback={<div className='min-h-[60vh]' />}>
+      <DemoPageContent {...props} />
+    </Suspense>
   );
 }
